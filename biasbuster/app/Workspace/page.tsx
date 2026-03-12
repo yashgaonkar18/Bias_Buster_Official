@@ -12,6 +12,85 @@ const InfoRow = ({ label, value }: { label: string; value?: any }) => (
   </div>
 );
 
+const ProcessingLoader = ({ step }: { step: string }) => {
+  return (
+    <div className="mb-6 p-6 border rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+
+      <div className="flex items-center gap-4">
+
+        {/* Animated Spinner */}
+        <div className="relative">
+          <div className="h-10 w-10 rounded-full border-4 border-blue-200"></div>
+          <div className="absolute top-0 left-0 h-10 w-10 rounded-full border-4 border-blue-500 border-t-transparent animate-spin"></div>
+        </div>
+
+        {/* Text */}
+        <div>
+          <div className="text-sm font-semibold text-blue-800">
+            Processing Request
+          </div>
+
+          <div className="text-xs text-blue-600 mt-1">
+            {step}
+          </div>
+        </div>
+      </div>
+
+      {/* Progress Animation */}
+      <div className="mt-4 w-full bg-blue-100 rounded-full h-2 overflow-hidden">
+        <div className="h-full bg-blue-500 animate-pulse w-2/3"></div>
+      </div>
+
+    </div>
+  );
+};
+
+const interpretMetric = (metric: string, value: number) => {
+  if (metric === "DIR") {
+    if (value >= 0.8 && value <= 1.25)
+      return { label: "Fair", color: "text-green-600" };
+
+    if ((value >= 0.6 && value < 0.8) || (value > 1.25 && value <= 1.4))
+      return { label: "Moderate Bias", color: "text-yellow-600" };
+
+    return { label: "Severe Bias", color: "text-red-600" };
+  }
+
+  if (metric === "DPD" || metric === "EOD") {
+    const abs = Math.abs(value);
+
+    if (abs <= 0.1)
+      return { label: "Fair", color: "text-green-600" };
+
+    if (abs <= 0.2)
+      return { label: "Moderate Bias", color: "text-yellow-600" };
+
+    return { label: "Severe Bias", color: "text-red-600" };
+  }
+
+  return { label: "Unknown", color: "text-gray-600" };
+};
+
+const MetricRow = ({ name, value }: any) => {
+  const interpretation = interpretMetric(name, value);
+
+  return (
+    <div className="border rounded-lg p-3 bg-gray-50">
+      <div className="text-xs text-gray-500">{name}</div>
+
+      <div className="flex items-center justify-between mt-1">
+        <span className="font-semibold text-gray-800">
+          {value?.toFixed(3)}
+        </span>
+
+        <span className={`text-xs font-semibold ${interpretation.color}`}>
+          {interpretation.label}
+        </span>
+      </div>
+    </div>
+  );
+};
+
 const BiasSummary = ({ report }: { report: any }) => (
   <div className={`border rounded-lg p-5 ${report.bias_present ? "bg-red-50 border-red-200" : "bg-green-50 border-green-200"
     }`}>
@@ -80,9 +159,9 @@ const AttributeBiasCard = ({ attribute, data }: any) => {
       </div>
 
       <div className="p-4 grid grid-cols-3 gap-4 text-sm">
-        <InfoRow label="DP Difference" value={data.dpd} />
-        <InfoRow label="Equalized Odds Diff" value={data.eod} />
-        <InfoRow label="Disparate Impact" value={data.dir} />
+        <MetricRow name="DPD" value={data.dpd} />
+        <MetricRow name="EOD" value={data.eod} />
+        <MetricRow name="DIR" value={data.dir} />
       </div>
 
       <GroupImpactTable
@@ -104,6 +183,7 @@ export default function BiasBuster() {
   const [isModelValid, setIsModelValid] = useState(false);
   const [uploadId, setUploadId] = useState<number | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [processingStep, setProcessingStep] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [datasetFile, setDatasetFile] = useState<File | null>(null);
   const [uploadResponse, setUploadResponse] = useState<any | null>(null);
@@ -163,11 +243,14 @@ export default function BiasBuster() {
 
     try {
       setUploading(true);
+      setProcessingStep("Uploading dataset and model...");
       setUploadError(null);
 
       const res = await api.post("/api/upload", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
+      setProcessingStep("Preprocessing dataset...");
+      setProcessingStep(null);
 
       setUploadId(res.data.upload_id);
       setUploadResponse(res.data);
@@ -280,12 +363,16 @@ export default function BiasBuster() {
       }
 
       try {
+        setProcessingStep("Preparing dataset for bias audit...");
+        await new Promise((r) => setTimeout(r, 800));
+
+        setProcessingStep("Running fairness metrics (DPD, EOD, DIR)...");
         const res = await api.post("/api/bias/detect", {
           upload_id: uploadId, // ⚠️ NUMBER
           target_column: selectedTarget,
           sensitive_columns: selectedSensitive,
         });
-
+        setProcessingStep(null);
         setBiasResults(res.data);
         setCurrentPhase("BIAS_DETECTED");
         setActiveResponseTab("body");
@@ -348,7 +435,7 @@ export default function BiasBuster() {
 
 
   const renderRequestBody = () => {
-    
+
     if (requestMethod === "MITIGATE") {
       return (
         <div className="max-w-5xl">
@@ -553,114 +640,124 @@ export default function BiasBuster() {
 
   const renderResponseBody = () => {
     if (requestMethod === "VALIDATE" && uploadResponse) {
-  const { dataset_info, model_info } = uploadResponse;
+      const { dataset_info, model_info } = uploadResponse;
 
-  return (
-    <div className="space-y-6">
+      return (
+        <div className="space-y-6">
 
-      {/* Header */}
-      <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg p-4">
-        <div className="flex items-center gap-3">
-          <CheckCircle className="w-6 h-6 text-green-600" />
-          <div>
-            <div className="text-sm font-semibold text-green-700">
-              Validation Completed Successfully
+          {/* Header */}
+          <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg p-4">
+            <div className="flex items-center gap-3">
+              <CheckCircle className="w-6 h-6 text-green-600" />
+              <div>
+                <div className="text-sm font-semibold text-green-700">
+                  Validation Completed Successfully
+                </div>
+                <div className="text-xs text-green-600">
+                  Dataset and model are compatible with BiasBuster pipeline
+                </div>
+              </div>
             </div>
-            <div className="text-xs text-green-600">
-              Dataset and model are compatible with BiasBuster pipeline
+          </div>
+
+
+          {/* Status Cards */}
+          <div className="grid grid-cols-3 gap-4">
+            <StatusCard title="Dataset Validation" status={true} />
+            <StatusCard title="Model Validation" status={true} />
+            <StatusCard title="Pipeline Ready" status="Ready for Bias Detection" />
+          </div>
+
+          {/* Dataset Card */}
+          <div className="border rounded-lg bg-white shadow-sm">
+            <div className="px-4 py-3 border-b flex items-center gap-2">
+              <Database className="w-4 h-4 text-orange-500" />
+              <span className="text-sm font-semibold">Dataset Overview</span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-6 p-4 text-sm">
+              <InfoRow label="File Name" value={datasetFile?.name} />
+              <InfoRow label="Rows" value={dataset_info?.rows} />
+              <InfoRow label="Columns" value={dataset_info?.columns} />
+              <InfoRow label="Missing Values" value={dataset_info?.missing_values ?? "0"} />
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Status Cards */}
-      <div className="grid grid-cols-3 gap-4">
-        <StatusCard title="Dataset Validation" status={true} />
-        <StatusCard title="Model Validation" status={true} />
-        <StatusCard title="Pipeline Ready" status="Ready for Bias Detection" />
-      </div>
+          {/* Model Card */}
+          <div className="border rounded-lg bg-white shadow-sm">
+            <div className="px-4 py-3 border-b flex items-center gap-2">
+              <Brain className="w-4 h-4 text-blue-500" />
+              <span className="text-sm font-semibold">Model Verification</span>
+            </div>
 
-      {/* Dataset Card */}
-      <div className="border rounded-lg bg-white shadow-sm">
-        <div className="px-4 py-3 border-b flex items-center gap-2">
-          <Database className="w-4 h-4 text-orange-500" />
-          <span className="text-sm font-semibold">Dataset Overview</span>
-        </div>
-
-        <div className="grid grid-cols-2 gap-6 p-4 text-sm">
-          <InfoRow label="File Name" value={datasetFile?.name} />
-          <InfoRow label="Rows" value={dataset_info?.rows} />
-          <InfoRow label="Columns" value={dataset_info?.columns} />
-          <InfoRow label="Missing Values" value={dataset_info?.missing_values ?? "0"} />
-        </div>
-      </div>
-
-      {/* Model Card */}
-      <div className="border rounded-lg bg-white shadow-sm">
-        <div className="px-4 py-3 border-b flex items-center gap-2">
-          <Brain className="w-4 h-4 text-blue-500" />
-          <span className="text-sm font-semibold">Model Verification</span>
-        </div>
-
-        <div className="grid grid-cols-2 gap-6 p-4 text-sm">
-          <InfoRow label="Model File" value={modelFile?.name} />
-          <InfoRow label="Format" value={model_info?.format ?? "Supported"} />
-          <InfoRow label="Model Type" value={model_info?.model_type ?? "Classifier"} />
-          <InfoRow label="Compatibility" value="Compatible with pipeline" />
-        </div>
-      </div>
-
-      {/* Validation Checklist */}
-      <div className="border rounded-lg bg-white shadow-sm">
-        <div className="px-4 py-3 border-b text-sm font-semibold">
-          Validation Checklist
-        </div>
-
-        <div className="p-4 space-y-2 text-sm">
-          <div className="flex items-center gap-2 text-green-700">
-            <CheckCircle className="w-4 h-4" />
-            Dataset file uploaded successfully
+            <div className="grid grid-cols-2 gap-6 p-4 text-sm">
+              <InfoRow label="Model File" value={modelFile?.name} />
+              <InfoRow label="Format" value={model_info?.format ?? "Supported"} />
+              <InfoRow label="Model Type" value={model_info?.model_type ?? "Classifier"} />
+              <InfoRow label="Compatibility" value="Compatible with pipeline" />
+            </div>
           </div>
 
-          <div className="flex items-center gap-2 text-green-700">
-            <CheckCircle className="w-4 h-4" />
-            Model file format supported
+          {/* Validation Checklist */}
+          <div className="border rounded-lg bg-white shadow-sm">
+            <div className="px-4 py-3 border-b text-sm font-semibold">
+              Validation Checklist
+            </div>
+
+            <div className="p-4 space-y-2 text-sm">
+              <div className="flex items-center gap-2 text-green-700">
+                <CheckCircle className="w-4 h-4" />
+                Dataset file uploaded successfully
+              </div>
+
+              <div className="flex items-center gap-2 text-green-700">
+                <CheckCircle className="w-4 h-4" />
+                Model file format supported
+              </div>
+
+              <div className="flex items-center gap-2 text-green-700">
+                <CheckCircle className="w-4 h-4" />
+                Dataset structure verified
+              </div>
+
+              <div className="flex items-center gap-2 text-green-700">
+                <CheckCircle className="w-4 h-4" />
+                Model ready for bias analysis
+              </div>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2 text-green-700">
-            <CheckCircle className="w-4 h-4" />
-            Dataset structure verified
+          {/* Next Step Hint */}
+          <div className="flex items-center justify-between p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <span className="text-sm text-blue-700 font-medium">
+              Next Step: Configure bias detection by selecting target and sensitive attributes.
+            </span>
+
+            <button
+              onClick={() => setRequestMethod("DETECT")}
+              className="px-4 py-2 text-sm font-semibold bg-orange-500 text-white rounded hover:bg-orange-600 flex items-center gap-2"
+            >
+              Go to Detection
+              <ChevronRight className="w-4 h-4" />
+            </button>
           </div>
 
-          <div className="flex items-center gap-2 text-green-700">
-            <CheckCircle className="w-4 h-4" />
-            Model ready for bias analysis
-          </div>
         </div>
-      </div>
-
-      {/* Next Step Hint */}
-      <div className="flex items-center justify-between p-4 bg-blue-50 border border-blue-200 rounded-lg">
-        <span className="text-sm text-blue-700 font-medium">
-          Next Step: Configure bias detection by selecting target and sensitive attributes.
-        </span>
-
-        <button
-          onClick={() => setRequestMethod("DETECT")}
-          className="px-4 py-2 text-sm font-semibold bg-orange-500 text-white rounded hover:bg-orange-600 flex items-center gap-2"
-        >
-          Go to Detection
-          <ChevronRight className="w-4 h-4" />
-        </button>
-      </div>
-
-    </div>
-  );
-}
+      );
+    }
 
     if (requestMethod === "DETECT" && biasResults) {
       return (
         <div className="space-y-6">
+          <div className="p-4 border rounded-lg bg-gray-50 text-sm mb-4">
+            <div className="font-semibold mb-2">Fairness Metric Guidelines</div>
+
+            <ul className="space-y-1 text-gray-600">
+              <li>DPD ≤ 0.1 → Fair</li>
+              <li>EOD ≤ 0.1 → Fair</li>
+              <li>DIR between 0.8 and 1.25 → Fair</li>
+            </ul>
+          </div>
           <BiasSummary report={biasResults} />
 
           {Object.entries(biasResults.sensitive_audit).map(
@@ -937,9 +1034,15 @@ export default function BiasBuster() {
             </div>
           </div>
 
-          <div className="p-6 bg-white">
-            {renderRequestBody()}
-          </div>
+       <div className="p-6 bg-white">
+
+  {(uploading || processingStep) && (
+    <ProcessingLoader step={processingStep || "Processing..."} />
+  )}
+
+  {renderRequestBody()}
+
+</div>
 
           {showResponse && (
             <div className="border-t-4 border-gray-200 bg-gray-50">
