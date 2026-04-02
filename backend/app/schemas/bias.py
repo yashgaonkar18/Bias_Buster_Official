@@ -8,3 +8,9 @@ class BiasDetectRequest(BaseModel):
     sensitive_columns: List[str] = Field(
         ..., description="List of sensitive attributes selected by user"
     )
+
+class BaselineRequest(BaseModel):
+    upload_id: int = Field(..., description="UploadRecord ID")
+    target_column: str = Field(..., description="Target label column")
+    sensitive_attribute: str = Field(..., description="Single sensitive attribute for baseline")
+

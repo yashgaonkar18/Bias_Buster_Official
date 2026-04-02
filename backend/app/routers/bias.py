@@ -1,12 +1,24 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db import get_session
-from app.schemas.bias import BiasDetectRequest
-from app.services.bias_service import run_bias_detection
+from app.schemas.bias import BiasDetectRequest, BaselineRequest
+from app.services.bias_service import run_bias_detection, run_baseline_evaluation
 from app.models.bias import BiasReport
-from fastapi import HTTPException
 
 router = APIRouter(prefix="/api/bias", tags=["Bias Detection"])
+
+@router.post("/baseline")
+async def run_baseline(
+    payload: BaselineRequest,
+    session: AsyncSession = Depends(get_session),
+):
+    try:
+        result = await run_baseline_evaluation(payload, session)
+        return result
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Baseline evaluation failed: {e}")
 
 
 @router.post("/detect")

@@ -3,7 +3,7 @@ import numpy as np
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.schemas.bias import BiasDetectRequest
+from app.schemas.bias import BiasDetectRequest, BaselineRequest
 from app.models.models import UploadRecord
 from app.models.bias import BiasReport
 
@@ -25,6 +25,7 @@ from app.utils.fairness_metrics import (
     demographic_parity_difference,
     equal_opportunity_difference,
     disparate_impact_ratio,
+    evaluate_baseline,
 )
 
 from app.utils.bias_decision import evaluate_bias
@@ -95,14 +96,14 @@ async def run_bias_detection(
     # 6️⃣ Prediction
     # ----------------------------------------
     y_true = df[payload.target_column].astype(int)
-    X = df.drop(columns=[payload.target_column])
+    raw_X = df.drop(columns=[payload.target_column])
 
     if isinstance(model, Pipeline):
-        X_infer = X
+        X_infer = raw_X
     else:
-        X_infer = encode_features_for_inference(X)
+        X_infer = encode_features_for_inference(raw_X)
 
-    y_pred = predict_labels(model, X_infer)
+    y_pred = predict_labels(model, X=X_infer, raw_X=raw_X)
     y_pred = np.nan_to_num(y_pred).astype(int)
 
     # ----------------------------------------
@@ -236,14 +237,21 @@ async def run_bias_detection_from_objects(
     # 1️⃣ Prepare Data
     # ----------------------------------------
     y_true = df[target_column].astype(int)
-    X = df.drop(columns=[target_column])
+    raw_X = df.drop(columns=[target_column])
 
     if isinstance(model, Pipeline):
-        X_infer = X
+        X_infer = raw_X
     else:
-        X_infer = encode_features_for_inference(X)
+        X_infer = encode_features_for_inference(raw_X)
 
-    y_pred = model.predict(X_infer)
+    # For mitigation runs, we might need sensitive features if the model is ThresholdOptimizer
+    # But for ThresholdOptimizer, predict_with_fallback requires sensitive_features
+    # We will pass the first sensitive column if model requires it, else None
+    sensitive_features = None
+    if isinstance(model, ThresholdOptimizer) and len(sensitive_columns) > 0:
+        sensitive_features = df[sensitive_columns[0]]
+
+    y_pred = predict_labels(model, X=X_infer, raw_X=raw_X, sensitive_features=sensitive_features)
     y_pred = np.nan_to_num(y_pred).astype(int)
 
     # ----------------------------------------
@@ -306,4 +314,45 @@ async def run_bias_detection_from_objects(
         "bias_driver": bias_driver,
         "bias_severity_score": max_severity,
         "sensitive_audit": audit_results,
+    }
+
+
+async def run_baseline_evaluation(payload: BaselineRequest, session: AsyncSession):
+    # Fetch upload record
+    record = (
+        await session.execute(
+            select(UploadRecord).where(UploadRecord.id == payload.upload_id)
+        )
+    ).scalar_one_or_none()
+
+    if not record:
+        raise ValueError("Upload record not found")
+
+    df = load_dataset(record.dataset_filename)
+    model = load_model(record.model_filename)
+    raw_X = df.drop(columns=[payload.target_column])
+    
+    encoded_df, _ = encode_target_column(df, payload.target_column)
+    y_true = encoded_df[payload.target_column].astype(int)
+    
+    # Needs sensitive validation/binning just like detection if needed, but we'll assume it's clean for baseline test
+    sensitive = encoded_df[payload.sensitive_attribute]
+    
+    if isinstance(model, Pipeline):
+        X_infer = raw_X
+    else:
+        X_infer = encode_features_for_inference(raw_X)
+        
+    y_pred = predict_labels(model, X=X_infer, raw_X=raw_X)
+    y_pred = np.nan_to_num(y_pred).astype(int)
+    
+    result = evaluate_baseline(y_true, y_pred, sensitive)
+    
+    return {
+        "status": "success",
+        "upload_id": payload.upload_id,
+        "target": payload.target_column,
+        "sensitive_attribute": payload.sensitive_attribute,
+        "baseline_metrics": result,
+        "next_step": "mitigation_recommendation",
     }

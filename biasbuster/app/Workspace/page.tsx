@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import {
-  Upload, Play, FileText, Database, Brain, CheckCircle, ChevronDown, Settings, BarChart3, Plus, Folder, Save, Clock, X, Search, MoreVertical, ChevronRight,
+  Upload, Play, FileText, Database, ShieldCheck, Brain, CheckCircle, ChevronDown, Settings, BarChart3, Plus, Folder, Save, Clock, X, Search, MoreVertical, ChevronRight,
 } from "lucide-react";
 import { api } from "@/lib/api";
 const InfoRow = ({ label, value }: { label: string; value?: any }) => (
@@ -300,7 +300,8 @@ export default function BiasBuster() {
 
   // Very small CSV parser (handles simple CSVs without multiline quoted fields)
 
-
+  const [selectedStrategy, setSelectedStrategy] = useState("reweighting");
+  const [mitigationResults, setMitigationResults] = useState<any>(null);
 
   const handleModelFile = (file: File | null) => {
     setModelFile(file);
@@ -387,8 +388,33 @@ export default function BiasBuster() {
 
     // ===== MITIGATE =====
     if (requestMethod === "MITIGATE") {
-      setActiveResponseTab("tests");
-      setShowResponse(true);
+      if (!biasResults || !biasResults.report_id) {
+         alert("Please run DETECT first to configure mitigation.");
+         return;
+      }
+      try {
+        setProcessingStep("Applying Iterative Mitigation pipeline...");
+        
+        const audit = biasResults.sensitive_audit;
+        const ranking = Object.keys(audit).sort((a,b) => (audit[b].severity_score ?? audit[b].bias_severity_score) - (audit[a].severity_score ?? audit[a].bias_severity_score));
+        const scores: any = {};
+        for (const k of ranking) {
+          scores[k] = audit[k].severity_score ?? audit[k].bias_severity_score;
+        }
+
+        const res = await api.post(`/api/mitigation/apply/${selectedStrategy}/${biasResults.report_id}`, {
+             sensitive_attributes: selectedSensitive,
+             bias_ranking: ranking,
+             bias_scores: scores
+        });
+        setProcessingStep(null);
+        setMitigationResults(res.data);
+        setActiveResponseTab("body");
+        setShowResponse(true);
+      } catch (err: any) {
+        setProcessingStep(null);
+        alert(err?.response?.data?.detail || "Mitigation failed");
+      }
     }
   };
 
@@ -438,37 +464,43 @@ export default function BiasBuster() {
 
     if (requestMethod === "MITIGATE") {
       return (
-        <div className="max-w-5xl">
-          <h3 className="text-lg font-bold text-gray-800 mb-4">Bias Mitigation Strategy (Phase 5)</h3>
-          <p className="text-sm text-gray-600 mb-6">Select up to three algorithms to compare their impact on fairness and accuracy. The system will run all selected methods to determine which works best.</p>
+        <div className="max-w-4xl space-y-6">
+          <h3 className="text-lg font-bold text-gray-800">
+            Iterative Bias Mitigation Configuration
+          </h3>
+          <p className="text-sm text-gray-600">
+            Select an algorithm to dynamically address the identified biases across all targeted sensitive attributes sequentially.
+          </p>
 
           <div className="space-y-4">
-            {/* ... (Mitigation Strategy Selects remain the same) */}
-            <div className="p-4 border border-gray-200 rounded-lg bg-gray-50">
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Pre-processing Algorithms</label>
-              <select className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-orange-500">
-                <option>None Selected</option>
-                <option>Reweighting (Dataset)</option>
-                <option>Disparate Impact Remover</option>
-              </select>
+            <div className="border border-gray-200 rounded-lg transition-colors hover:bg-gray-50 focus-within:bg-orange-50 focus-within:border-orange-200 overflow-hidden">
+              <label className="flex items-start gap-4 p-4 cursor-pointer w-full text-left">
+                <input type="radio" name="strategy" value="smote" checked={selectedStrategy === "smote"} onChange={(e) => setSelectedStrategy(e.target.value)} className="mt-1" />
+                <div>
+                  <div className="text-sm font-bold text-gray-800">Fair-SMOTE (Oversampling)</div>
+                  <div className="text-xs text-gray-600 mt-1 leading-relaxed">Enhances the dataset by generating synthetic minority examples perfectly balanced at intersectional subgroup bounds. Best for retaining high performance on imbalanced data.</div>
+                </div>
+              </label>
             </div>
 
-            <div className="p-4 border border-gray-200 rounded-lg bg-gray-50">
-              <label className="block text-sm font-semibold text-gray-700 mb-2">In-processing Algorithms</label>
-              <select className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-orange-500">
-                <option>None Selected</option>
-                <option>Adversarial Debiasing</option>
-                <option>Prejudice Remover</option>
-              </select>
+            <div className="border border-gray-200 rounded-lg transition-colors hover:bg-gray-50 focus-within:bg-orange-50 focus-within:border-orange-200 overflow-hidden">
+              <label className="flex items-start gap-4 p-4 cursor-pointer w-full text-left">
+                <input type="radio" name="strategy" value="reweighting" checked={selectedStrategy === "reweighting"} onChange={(e) => setSelectedStrategy(e.target.value)} className="mt-1" />
+                <div>
+                  <div className="text-sm font-bold text-gray-800">Reweighting (Dataset Distribution)</div>
+                  <div className="text-xs text-gray-600 mt-1 leading-relaxed">Assigns varied sample weights based on group representations, dynamically adjusting to counteract disparate impacts seamlessly before training.</div>
+                </div>
+              </label>
             </div>
 
-            <div className="p-4 border border-gray-200 rounded-lg bg-gray-50">
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Post-processing Algorithms</label>
-              <select className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-orange-500">
-                <option>None Selected</option>
-                <option>Calibrated Equalized Odds</option>
-                <option>Reject Option Classification (ROC)</option>
-              </select>
+            <div className="border border-gray-200 rounded-lg transition-colors hover:bg-gray-50 focus-within:bg-orange-50 focus-within:border-orange-200 overflow-hidden">
+              <label className="flex items-start gap-4 p-4 cursor-pointer w-full text-left">
+                <input type="radio" name="strategy" value="threshold" checked={selectedStrategy === "threshold"} onChange={(e) => setSelectedStrategy(e.target.value)} className="mt-1" />
+                <div>
+                  <div className="text-sm font-bold text-gray-800">Threshold Optimizer (Post-Processing)</div>
+                  <div className="text-xs text-gray-600 mt-1 leading-relaxed">Adjusts classification bounds independently for every demographic group predicting probability boundaries to hit strict parity constraints dynamically.</div>
+                </div>
+              </label>
             </div>
           </div>
         </div>
@@ -803,6 +835,71 @@ export default function BiasBuster() {
                 <ChevronRight className="w-4 h-4" />
               </button>
             )}
+          </div>
+        </div>
+      );
+    }
+
+    if (requestMethod === "MITIGATE" && mitigationResults) {
+      return (
+        <div className="space-y-8 max-w-5xl">
+          <div className="flex flex-col gap-4">
+             <div className="bg-green-50 border border-green-200 rounded-lg p-5">
+                <h3 className="text-lg font-bold text-green-800 mb-2 flex items-center gap-2">
+                   <ShieldCheck className="w-5 h-5"/> Mitigation Pipeline Successful
+                </h3>
+                <div className="grid grid-cols-3 gap-4 text-sm mt-4">
+                  <InfoRow label="Strategy" value={mitigationResults.strategy.toUpperCase()} />
+                  <InfoRow label="Iterative Protocol" value={mitigationResults.is_iterative ? "Enabled" : "Disabled"} />
+                  <InfoRow label="Fairness Improved" value={mitigationResults.comparison?.overall_assessment?.fairness_improved ? "Yes ✅" : "No ❌"} />
+                </div>
+             </div>
+          </div>
+
+          <div>
+             <h4 className="font-bold text-gray-800 mb-4 border-b pb-2">Sequential Execution Log</h4>
+             <div className="space-y-4">
+                {mitigationResults.mitigation_log && mitigationResults.mitigation_log.map((step: any, idx: number) => (
+                  <div key={idx} className={`p-4 border rounded-lg ${step.applied ? "bg-white shadow-sm border-orange-100" : "bg-gray-50 bg-opacity-50"}`}>
+                     <div className="flex items-center justify-between mb-3 border-b border-dashed border-gray-200 pb-3">
+                        <div className="font-semibold text-gray-800 flex items-center gap-2 text-sm">
+                           <span className="bg-orange-100 text-orange-800 px-2.5 py-0.5 rounded text-xs font-bold tracking-widest">STEP {idx + 1}</span>
+                           <span className="capitalize">{step.attribute}</span>
+                        </div>
+                        {step.applied ? (
+                             <span className="text-xs px-2 py-1 bg-green-100 text-green-800 font-semibold rounded-full flex items-center gap-1 border border-green-200"><CheckCircle className="w-3.5 h-3.5"/> Applied</span>
+                        ) : (
+                             <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 font-medium rounded border border-gray-200">Skipped: {step.reason}</span>
+                        )}
+                     </div>
+
+                     {step.applied && (
+                         <div className="grid grid-cols-2 gap-8 text-sm pt-2">
+                            <div className="p-3 bg-gray-50 border border-gray-100 rounded">
+                               <div className="font-bold text-gray-400 mb-3 text-[10px] uppercase tracking-widest">Before Mitigation</div>
+                               <div className="grid grid-cols-2 gap-3">
+                                  <MetricRow name="Accuracy" value={step.before.performance.accuracy} />
+                                  <MetricRow name="DPD" value={step.before.fairness.dpd} />
+                                  <MetricRow name="EOD" value={step.before.fairness.eod} />
+                                  <MetricRow name="DIR" value={step.before.fairness.dir} />
+                               </div>
+                            </div>
+                            <div className="p-3 bg-orange-50/50 border border-orange-100 rounded">
+                               <div className="font-bold text-orange-500 mb-3 text-[10px] uppercase tracking-widest flex items-center gap-1">
+                                  After Mitigation
+                               </div>
+                               <div className="grid grid-cols-2 gap-3">
+                                  <MetricRow name="Accuracy" value={step.after.performance.accuracy} />
+                                  <MetricRow name="DPD" value={step.after.fairness.dpd} />
+                                  <MetricRow name="EOD" value={step.after.fairness.eod} />
+                                  <MetricRow name="DIR" value={step.after.fairness.dir} />
+                               </div>
+                            </div>
+                         </div>
+                     )}
+                  </div>
+                ))}
+             </div>
           </div>
         </div>
       );
