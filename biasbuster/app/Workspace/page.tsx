@@ -296,12 +296,16 @@ export default function BiasBuster() {
   const [selectedTarget, setSelectedTarget] = useState<string | null>(null);
   const [validationResults, setValidationResults] = useState<string[]>([]);
   const [preprocessedDataset, setPreprocessedDataset] = useState<DatasetRow[] | null>(null);
-  const [biasResults, setBiasResults] = useState<{ spd?: number; di?: number; details?: Array<{ group: string; rate: number; total: number }> } | null>(null);
+  const [biasResults, setBiasResults] = useState<{ report_id?: number; sensitive_audit?: any; bias_present?: boolean; spd?: number; di?: number; details?: Array<{ group: string; rate: number; total: number }> } | null>(null);
 
   // Very small CSV parser (handles simple CSVs without multiline quoted fields)
 
   const [selectedStrategy, setSelectedStrategy] = useState("reweighting");
   const [mitigationResults, setMitigationResults] = useState<any>(null);
+  const [strategyConfig, setStrategyConfig] = useState<any>({});
+  const [isOptimizing, setIsOptimizing] = useState(false);
+  const [isExperimenting, setIsExperimenting] = useState(false);
+  const [leaderboardResults, setLeaderboardResults] = useState<any[]>([]);
   const [aiRecommendation, setAiRecommendation] = useState<any>(null);
 
   const handleModelFile = (file: File | null) => {
@@ -406,7 +410,8 @@ export default function BiasBuster() {
         const res = await api.post(`/api/mitigation/apply/${selectedStrategy}/${biasResults.report_id}`, {
              sensitive_attributes: selectedSensitive,
              bias_ranking: ranking,
-             bias_scores: scores
+             bias_scores: scores,
+             strategy_config: strategyConfig
         });
         setProcessingStep(null);
         setMitigationResults(res.data);
@@ -537,6 +542,127 @@ export default function BiasBuster() {
               </label>
             </div>
           </div>
+
+            <div className="pt-4 border-t border-gray-200 mt-6">
+              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <div>
+                  <div className="font-bold text-gray-800 text-sm">Automated Hyperparameter Optimization</div>
+                  <div className="text-xs text-gray-600 mt-1">Use Optuna to search for the optimal parameters that maximize accuracy while minimizing bias.</div>
+                </div>
+                <button 
+                   disabled={isOptimizing}
+                   onClick={async (e) => {
+                     e.preventDefault();
+                     if (!biasResults || !biasResults.report_id) return;
+                     setIsOptimizing(true);
+                     setProcessingStep("Running Optuna optimization study (15 trials)...");
+                     try {
+                        const res = await api.post(`/api/mitigation/optimize/${selectedStrategy}/${biasResults.report_id}`);
+                        setStrategyConfig(res.data.optimization_result.best_params);
+                        alert(`Optimization Complete!\nBest parameters found: ${JSON.stringify(res.data.optimization_result.best_params)}\nThese will be used when you click Go to Mitigation.`);
+                     } catch (err: any) {
+                        alert(err?.response?.data?.detail || "Optimization failed");
+                     } finally {
+                        setIsOptimizing(false);
+                        setProcessingStep(null);
+                     }
+                   }}
+                   className={`px-4 py-2 text-sm font-semibold rounded ${isOptimizing ? 'bg-gray-300 text-gray-600 cursor-not-allowed' : 'bg-indigo-600 text-white hover:bg-indigo-700'}`}>
+                  {isOptimizing ? 'Optimizing...' : 'Run Optuna Search'}
+                </button>
+              </div>
+              
+              {Object.keys(strategyConfig).length > 0 && (
+                 <div className="mt-3 p-3 bg-indigo-50 border border-indigo-200 rounded text-xs text-indigo-800 font-medium font-mono">
+                    Active Config: {JSON.stringify(strategyConfig)}
+                 </div>
+              )}
+            </div>
+
+            {/* AUTO EXPERIMENTATION ENGINE */}
+            <div className="pt-4 border-t border-gray-200 mt-6">
+              <div className="flex items-center justify-between p-4 bg-orange-50 rounded-lg border border-orange-200">
+                <div>
+                  <div className="font-bold text-orange-900 text-sm">Full Auto-Experimentation Suite</div>
+                  <div className="text-xs text-orange-800 mt-1">Simultaneously evaluate SMOTE, Reweighting, and Thresholding on your dataset to automatically generate a Pareto-ranked leaderboard.</div>
+                </div>
+                <button 
+                   disabled={isExperimenting || isOptimizing}
+                   onClick={async (e) => {
+                     e.preventDefault();
+                     if (!biasResults || !biasResults.report_id) return;
+                     setIsExperimenting(true);
+                     setProcessingStep("Running concurrent experimentation across all strategies...");
+                     try {
+                        const audit = biasResults.sensitive_audit;
+                        const ranking = Object.keys(audit).sort((a,b) => (audit[b].severity_score ?? audit[b].bias_severity_score) - (audit[a].severity_score ?? audit[a].bias_severity_score));
+                        const scores: any = {};
+                        for (const k of ranking) {
+                          scores[k] = audit[k].severity_score ?? audit[k].bias_severity_score;
+                        }
+
+                        const res = await api.post(`/api/mitigation/auto-experiment/${biasResults.report_id}`, {
+                             sensitive_attributes: selectedSensitive,
+                             bias_ranking: ranking,
+                             bias_scores: scores
+                        });
+                        setLeaderboardResults(res.data.leaderboard);
+                     } catch (err: any) {
+                        alert(err?.response?.data?.detail || "Experimentation failed");
+                     } finally {
+                        setIsExperimenting(false);
+                        setProcessingStep(null);
+                     }
+                   }}
+                   className={`px-4 py-2 text-sm font-semibold rounded ${isExperimenting ? 'bg-orange-300 text-orange-600 cursor-not-allowed' : 'bg-orange-600 text-white hover:bg-orange-700 shadow-sm'}`}>
+                  {isExperimenting ? 'Experimenting...' : 'Run All Strategies'}
+                </button>
+              </div>
+
+              {leaderboardResults.length > 0 && (
+                 <div className="mt-6">
+                    <h4 className="font-bold text-gray-800 text-sm mb-3">Experimental Leaderboard</h4>
+                    <div className="space-y-3">
+                       {leaderboardResults.map((result: any, idx: number) => {
+                          const after = result.after.fairness;
+                          const acc = result.after.performance.accuracy;
+                          return (
+                             <div key={idx} className={`p-4 border rounded-lg flex items-center justify-between ${idx === 0 ? 'bg-green-50 border-green-200' : 'bg-white'}`}>
+                                <div className="flex items-center gap-4">
+                                   <div className={`font-black text-xl px-3 py-1 rounded bg-white border ${idx === 0 ? 'text-green-600 border-green-200 shadow-sm' : 'text-gray-400 border-gray-100'}`}>#{idx + 1}</div>
+                                   <div>
+                                      <div className="font-bold uppercase tracking-wider text-sm text-gray-800">{result.strategy}</div>
+                                      <div className="text-xs text-gray-500 font-medium">Rank Score: {result.leaderboard_score.toFixed(2)}</div>
+                                   </div>
+                                </div>
+                                <div className="flex items-center gap-6 text-sm">
+                                   <div className="flex flex-col items-center">
+                                      <span className="text-gray-400 text-[10px] font-bold tracking-widest uppercase">Accuracy</span>
+                                      <span className="font-medium text-gray-800">{(acc*100).toFixed(1)}%</span>
+                                   </div>
+                                   <div className="flex flex-col items-center">
+                                      <span className="text-gray-400 text-[10px] font-bold tracking-widest uppercase">DPD</span>
+                                      <span className="font-medium text-gray-800">{after.dpd?.toFixed(3) || "0.000"}</span>
+                                   </div>
+                                   <div className="flex flex-col items-center">
+                                      <span className="text-gray-400 text-[10px] font-bold tracking-widest uppercase">EOD</span>
+                                      <span className="font-medium text-gray-800">{after.eod?.toFixed(3) || "0.000"}</span>
+                                   </div>
+                                   <button 
+                                      className="ml-4 px-3 py-1.5 text-xs bg-white border border-gray-200 rounded hover:bg-gray-50 focus:outline" 
+                                      onClick={() => {
+                                        setSelectedStrategy(result.strategy);
+                                      }}
+                                    >Select</button>
+                                </div>
+                             </div>
+                          );
+                       })}
+                    </div>
+                 </div>
+              )}
+            </div>
+
         </div>
       );
     }

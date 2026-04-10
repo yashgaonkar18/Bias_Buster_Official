@@ -43,6 +43,63 @@ async def get_mitigation_recommendation(report_id: int, session: AsyncSession):
     recommendation = recommend_strategy(metrics, dataset_shape, upload.model_type)
     return recommendation
 
+async def run_optimization(report_id: int, strategy: str, session: AsyncSession):
+    bias_report = await session.get(BiasReport, report_id)
+    if not bias_report:
+        raise ValueError("Bias report not found")
+
+    upload = await session.get(UploadRecord, bias_report.upload_id)
+    if not upload:
+        raise ValueError("Upload record not found")
+
+    df = load_dataset(upload.dataset_filename)
+    model = load_model(upload.model_filename)
+
+    target_column = bias_report.target_info["target_column"]
+    if bias_report.sensitive_attributes and "selected_columns" in bias_report.sensitive_attributes:
+        sensitive_col = bias_report.sensitive_attributes["selected_columns"][0]
+    else:
+        sensitive_col = list(bias_report.sensitive_audit.keys())[0]
+
+    from app.utils.optimization import run_optuna_optimization
+    result = run_optuna_optimization(strategy, df, model, target_column, sensitive_col)
+    
+    return {
+        "status": "optimization_success",
+        "strategy": strategy,
+        "optimization_result": result
+    }
+
+async def run_auto_experiment(report_id: int, session: AsyncSession, is_iterative: bool = False, request=None):
+    strategies = ["smote", "reweighting", "threshold"]
+    results = []
+
+    for strategy in strategies:
+        try:
+            if is_iterative and request:
+                res = await run_iterative_mitigation(report_id, strategy, session, request)
+            else:
+                res = await run_mitigation(report_id, strategy, session)
+            
+            acc_diff = res["after"]["performance"]["accuracy"] - res["before"]["performance"]["accuracy"]
+            
+            # Simple fitness score: heavily weight bias improvement, slightly penalize accuracy drops
+            # Assuming severity score ranges typically from 0 to 2
+            fitness = res["improvement_score"] * 10 + (acc_diff * 5)
+            res["leaderboard_score"] = fitness
+            results.append(res)
+        except Exception as e:
+            print(f"Strategy {strategy} failed during auto_experiment: {e}")
+            pass
+
+    # Sort descending by leaderboard_score
+    results.sort(key=lambda x: x["leaderboard_score"], reverse=True)
+    
+    return {
+        "status": "auto_experiment_success",
+        "leaderboard": results
+    }
+
 async def run_mitigation(report_id: int, strategy: str, session: AsyncSession, strategy_config: dict = None):
     if strategy_config is None:
         strategy_config = {}
@@ -100,8 +157,9 @@ async def run_mitigation(report_id: int, strategy: str, session: AsyncSession, s
     rows_after = None
 
     if strategy == "smote":
+        k_neighbors_override = strategy_config.get("k_neighbors", None)
         mitigated_model, X_balanced, y_balanced, sensitive_balanced = apply_smote(
-            X, y, sensitive, model
+            X, y, sensitive, model, k_neighbors_override=k_neighbors_override
         )
 
         rows_before = len(X)
@@ -148,6 +206,7 @@ async def run_mitigation(report_id: int, strategy: str, session: AsyncSession, s
             y,
             sensitive,
             grid_size=strategy_config.get("grid_size", 200),
+            constraints=strategy_config.get("constraints", "equalized_odds")
         )
 
         y_pred_after = mitigated_model.predict(
@@ -197,7 +256,10 @@ async def run_mitigation(report_id: int, strategy: str, session: AsyncSession, s
         "comparison": comparison,
     }
 
-async def run_iterative_mitigation(report_id: int, strategy: str, session: AsyncSession, request=None):
+async def run_iterative_mitigation(report_id: int, strategy: str, session: AsyncSession, request=None, strategy_config: dict = None):
+    if strategy_config is None:
+        strategy_config = {}
+        
     bias_report = await session.get(BiasReport, report_id)
     if not bias_report:
         raise ValueError("Bias report not found")
@@ -287,8 +349,9 @@ async def run_iterative_mitigation(report_id: int, strategy: str, session: Async
         # 3. Apply Mitigation
         if strategy == "smote":
             from app.utils.smote import apply_smote
+            k_neighbors_override = strategy_config.get("k_neighbors", None)
             mitigated_model, X_balanced, y_balanced, sensitive_balanced = apply_smote(
-                X_current, y_current, sensitive_series, mitigated_model
+                X_current, y_current, sensitive_series, mitigated_model, k_neighbors_override=k_neighbors_override
             )
             X_current = X_balanced
             y_current = y_balanced
@@ -310,7 +373,9 @@ async def run_iterative_mitigation(report_id: int, strategy: str, session: Async
         elif strategy == "threshold":
             from app.utils.threshold import apply_threshold_optimizer
             mitigated_model = apply_threshold_optimizer(
-                mitigated_model, X_current, y_current, sensitive_series, grid_size=200
+                mitigated_model, X_current, y_current, sensitive_series, 
+                grid_size=strategy_config.get("grid_size", 200),
+                constraints=strategy_config.get("constraints", "equalized_odds")
             )
 
         # 4. Predict and evaluate AFTER mitigation

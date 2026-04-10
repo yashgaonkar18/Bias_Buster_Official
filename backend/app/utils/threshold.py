@@ -6,6 +6,7 @@ def apply_threshold_optimizer(
     y_train,
     sensitive_train,
     grid_size=200,
+    constraints="equalized_odds"
 ):
     """
     Wraps the base model using Fairlearn ThresholdOptimizer.
@@ -14,7 +15,7 @@ def apply_threshold_optimizer(
 
     optimizer = ThresholdOptimizer(
         estimator=model,
-        constraints="equalized_odds",
+        constraints=constraints,
         predict_method=predict_method,
         grid_size=grid_size,
     )

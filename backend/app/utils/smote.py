@@ -3,7 +3,7 @@ from sklearn.base import clone
 import pandas as pd
 
 
-def apply_smote(X, y, sensitive, model):
+def apply_smote(X, y, sensitive, model, k_neighbors_override=None):
 
     # Combine everything into one DataFrame
     df = pd.DataFrame(X)
@@ -15,7 +15,11 @@ def apply_smote(X, y, sensitive, model):
     
     # Calculate appropriate neighbors to avoid crashing on tiny subgroups
     min_samples = compound_target.value_counts().min()
-    k_neighbors = min(5, max(1, min_samples - 1))
+    
+    if k_neighbors_override is not None:
+        k_neighbors = min(k_neighbors_override, max(1, min_samples - 1))
+    else:
+        k_neighbors = min(5, max(1, min_samples - 1))
 
     try:
         smote = SMOTE(random_state=42, k_neighbors=k_neighbors)
