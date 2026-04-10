@@ -22,6 +22,10 @@ async def get_mitigation_recommendation(report_id: int, session: AsyncSession):
     if not bias_report:
         raise ValueError("Bias report not found")
         
+    upload = await session.get(UploadRecord, bias_report.upload_id)
+    if not upload:
+        raise ValueError("Upload record not found")
+
     bias_driver = bias_report.bias_driver
     # Extract fairness metrics specifically for the main bias driver
     fairness_metrics = bias_report.sensitive_audit.get(bias_driver, {}) if bias_driver else {}
@@ -31,9 +35,13 @@ async def get_mitigation_recommendation(report_id: int, session: AsyncSession):
         "performance": {"accuracy": 0} # Real performance can be injected here if stored
     }
     
-    recommendation = recommend_strategy(metrics)
+    dataset_shape = {
+        "rows": upload.dataset_rows or 0,
+        "columns": upload.dataset_columns or 0
+    }
+    
+    recommendation = recommend_strategy(metrics, dataset_shape, upload.model_type)
     return recommendation
-
 
 async def run_mitigation(report_id: int, strategy: str, session: AsyncSession, strategy_config: dict = None):
     if strategy_config is None:

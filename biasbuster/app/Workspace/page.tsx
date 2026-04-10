@@ -302,6 +302,7 @@ export default function BiasBuster() {
 
   const [selectedStrategy, setSelectedStrategy] = useState("reweighting");
   const [mitigationResults, setMitigationResults] = useState<any>(null);
+  const [aiRecommendation, setAiRecommendation] = useState<any>(null);
 
   const handleModelFile = (file: File | null) => {
     setModelFile(file);
@@ -471,6 +472,39 @@ export default function BiasBuster() {
           <p className="text-sm text-gray-600">
             Select an algorithm to dynamically address the identified biases across all targeted sensitive attributes sequentially.
           </p>
+
+          {aiRecommendation && aiRecommendation.recommended_strategy !== "none" && (
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-5">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <Brain className="w-5 h-5 text-blue-600" />
+                  <h4 className="font-bold text-blue-900">AI Strategy Recommendation</h4>
+                </div>
+                <div className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-bold">
+                  {aiRecommendation.confidence_score}% Confidence
+                </div>
+              </div>
+              <p className="text-sm text-blue-800 mb-4">{aiRecommendation.explanation}</p>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-white rounded p-3 text-sm border border-green-100">
+                  <div className="font-semibold text-green-700 mb-2">Why this works</div>
+                  <ul className="list-disc pl-4 text-gray-600 space-y-1">
+                    {aiRecommendation.pros?.map((p: string, i: number) => <li key={i}>{p}</li>)}
+                  </ul>
+                </div>
+                <div className="bg-white rounded p-3 text-sm border border-orange-100">
+                  <div className="font-semibold text-orange-700 mb-2">Considerations</div>
+                  <ul className="list-disc pl-4 text-gray-600 space-y-1">
+                    {aiRecommendation.cons?.map((p: string, i: number) => <li key={i}>{p}</li>)}
+                  </ul>
+                </div>
+              </div>
+              <div className="mt-4 text-xs italic text-blue-600">
+                {aiRecommendation.note}
+              </div>
+            </div>
+          )}
 
           <div className="space-y-4">
             <div className="border border-gray-200 rounded-lg transition-colors hover:bg-gray-50 focus-within:bg-orange-50 focus-within:border-orange-200 overflow-hidden">
@@ -825,9 +859,18 @@ export default function BiasBuster() {
             {/* Next Phase Button */}
             {biasResults.bias_present && (
               <button
-                onClick={() => {
+                onClick={async () => {
                   setRequestMethod("MITIGATE");
                   setShowResponse(false);
+                  try {
+                    const rec = await api.post(`/api/mitigation/recommend/${biasResults.report_id}`);
+                    setAiRecommendation(rec.data);
+                    if(rec.data.recommended_strategy !== "none") {
+                        setSelectedStrategy(rec.data.recommended_strategy);
+                    }
+                  } catch (e) {
+                    console.error("Failed to fetch recommendation", e);
+                  }
                 }}
                 className="px-4 py-2 text-sm font-semibold bg-orange-500 text-white rounded hover:bg-orange-600 flex items-center gap-2"
               >
