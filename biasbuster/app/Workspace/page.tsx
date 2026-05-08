@@ -391,6 +391,7 @@ export default function BiasBuster() {
     }
 
 
+
     // ===== MITIGATE =====
     if (requestMethod === "MITIGATE") {
       if (!biasResults || !biasResults.report_id) {
@@ -1070,9 +1071,32 @@ export default function BiasBuster() {
                 ))}
              </div>
           </div>
+          
+          <div className="flex gap-4 pt-4 border-t border-gray-200">
+             {mitigationResults.strategy === "smote" && (
+                 <button
+                   onClick={() => {
+                     window.location.href = `http://localhost:8000/api/mitigation/export/dataset/${mitigationResults.mitigation_id}`;
+                   }}
+                   className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded shadow-sm text-sm"
+                 >
+                   Download Debiased Dataset
+                 </button>
+             )}
+             <button
+               onClick={() => {
+                 window.location.href = `http://localhost:8000/api/mitigation/export/model/${mitigationResults.mitigation_id}`;
+               }}
+               className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded shadow-sm text-sm"
+             >
+               Download Mitigated Model
+             </button>
+          </div>
         </div>
       );
     }
+
+
   };
   return (
     <div className="flex h-screen bg-gray-50">

@@ -15,6 +15,12 @@ from sklearn.base import clone
 import pandas as pd
 from fairlearn.postprocessing import ThresholdOptimizer
 from sklearn.pipeline import Pipeline
+import joblib
+import os
+import uuid
+
+EXPORTS_DIR = "exports"
+os.makedirs(EXPORTS_DIR, exist_ok=True)
 
 
 async def get_mitigation_recommendation(report_id: int, session: AsyncSession):
@@ -230,6 +236,25 @@ async def run_mitigation(report_id: int, strategy: str, session: AsyncSession, s
     from app.utils.comparison import compare_metrics
     comparison = compare_metrics(baseline_metrics, after_metrics)
 
+    mitigated_dataset_filename = f"{EXPORTS_DIR}/dataset_{uuid.uuid4().hex}.csv"
+    mitigated_model_filename = f"{EXPORTS_DIR}/model_{uuid.uuid4().hex}.pkl"
+    
+    # Save dataset (reconstructing with original target if possible)
+    try:
+        if strategy == "smote":
+            X_balanced_df = pd.DataFrame(X_balanced, columns=X.columns)
+            X_balanced_df[target_column] = y_balanced
+            X_balanced_df.to_csv(mitigated_dataset_filename, index=False)
+        else:
+            df.to_csv(mitigated_dataset_filename, index=False)
+            
+        # Save model
+        joblib.dump(mitigated_model, mitigated_model_filename)
+    except Exception as e:
+        print(f"Failed to export mitigated data/model: {e}")
+        mitigated_dataset_filename = None
+        mitigated_model_filename = None
+
     mitigation = MitigationReport(
         bias_report_id=report_id,
         method_used=strategy.upper(),
@@ -238,6 +263,8 @@ async def run_mitigation(report_id: int, strategy: str, session: AsyncSession, s
         before_metrics=baseline_metrics,
         after_metrics=after_metrics,
         improvement_score=improvement_score,
+        mitigated_dataset_filename=mitigated_dataset_filename,
+        mitigated_model_filename=mitigated_model_filename
     )
 
     session.add(mitigation)
@@ -423,6 +450,19 @@ async def run_iterative_mitigation(report_id: int, strategy: str, session: Async
     from app.utils.comparison import compare_metrics
     comparison = compare_metrics(baseline_metrics, final_metrics)
 
+    mitigated_dataset_filename = f"{EXPORTS_DIR}/dataset_{uuid.uuid4().hex}.csv"
+    mitigated_model_filename = f"{EXPORTS_DIR}/model_{uuid.uuid4().hex}.pkl"
+    
+    try:
+        X_current_df = pd.DataFrame(X_current, columns=X_original.columns)
+        X_current_df[target_column] = y_current
+        X_current_df.to_csv(mitigated_dataset_filename, index=False)
+        joblib.dump(mitigated_model, mitigated_model_filename)
+    except Exception as e:
+        print(f"Failed to export iterative mitigated data/model: {e}")
+        mitigated_dataset_filename = None
+        mitigated_model_filename = None
+
     mitigation = MitigationReport(
         bias_report_id=report_id,
         method_used=strategy.upper() + "_ITERATIVE",
@@ -431,6 +471,8 @@ async def run_iterative_mitigation(report_id: int, strategy: str, session: Async
         before_metrics=baseline_metrics,
         after_metrics=final_metrics,
         improvement_score=improvement_score,
+        mitigated_dataset_filename=mitigated_dataset_filename,
+        mitigated_model_filename=mitigated_model_filename
     )
     session.add(mitigation)
     await session.commit()

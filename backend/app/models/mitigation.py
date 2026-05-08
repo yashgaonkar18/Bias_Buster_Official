@@ -20,4 +20,7 @@ class MitigationReport(Base):
 
     improvement_score = Column(Float)
 
+    mitigated_dataset_filename = Column(String, nullable=True)
+    mitigated_model_filename = Column(String, nullable=True)
+
     created_at = Column(DateTime(timezone=True), server_default=func.now())
