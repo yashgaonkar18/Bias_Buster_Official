@@ -46,17 +46,17 @@ def compare_metrics(before: dict, after: dict):
     # Performance comparison
     # -------------------------------------------------
 
-    accuracy_before = perf_before.get("accuracy", 0)
-    accuracy_after = perf_after.get("accuracy", 0)
+    accuracy_before = perf_before["accuracy"]
+    accuracy_after = perf_after["accuracy"]
 
-    precision_before = perf_before.get("precision", 0)
-    precision_after = perf_after.get("precision", 0)
+    precision_before = perf_before["precision"]
+    precision_after = perf_after["precision"]
 
-    recall_before = perf_before.get("recall", 0)
-    recall_after = perf_after.get("recall", 0)
+    recall_before = perf_before["recall"]
+    recall_after = perf_after["recall"]
 
-    f1_before = perf_before.get("f1", 0)
-    f1_after = perf_after.get("f1", 0)
+    f1_before = perf_before["f1"]
+    f1_after = perf_after["f1"]
 
     report["performance_changes"] = {
         "accuracy": {

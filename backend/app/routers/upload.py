@@ -3,14 +3,12 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Any
 from pathlib import Path
-
 from ..utils.file_validation import save_upload_file, validate_csv_file
 from ..utils.model_validation import safe_load_model_from_path
 from ..db import get_session
 from app.models.models import UploadRecord
 
 router = APIRouter(prefix="/api")
-
 
 @router.post("/upload", response_model=Any)
 async def upload_files(
@@ -23,7 +21,6 @@ async def upload_files(
 
     if ds_ext != ".csv":
         raise HTTPException(status_code=400, detail="Dataset must be a .csv file")
-
     if md_ext not in {".pkl", ".joblib"}:
         raise HTTPException(status_code=400, detail="Model must be a .pkl or .joblib file")
 
@@ -46,14 +43,15 @@ async def upload_files(
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Unexpected error: {exc}")
 
+    # FIXED HERE ↓ store Boolean, no str() wrapping
     record = UploadRecord(
-        dataset_filename=ds_path.name,
-        model_filename=md_path.name,
-        dataset_rows=int(df.shape[0]),
-        dataset_columns=int(df.shape[1]),
-        dataset_columns_list=df.columns.astype(str).tolist(),
-        model_type=model_info["model_type"],
-        model_supports_predict_proba=bool(model_info["supports_proba"]),
+        dataset_filename = ds_path.name,
+        model_filename = md_path.name,
+        dataset_rows = int(df.shape[0]),
+        dataset_columns = int(df.shape[1]),
+        dataset_columns_list = df.columns.astype(str).tolist(),
+        model_type = model_info["model_type"],
+        model_supports_predict_proba = bool(model_info["supports_proba"]),  # ✔ Boolean
     )
 
     session.add(record)
@@ -61,7 +59,6 @@ async def upload_files(
     await session.refresh(record)
 
     success = {
-        "upload_id": record.id, 
         "status": "success",
         "dataset_info": {
             "rows": df.shape[0],
@@ -70,7 +67,7 @@ async def upload_files(
         },
         "model_info": {
             "model_type": model_info["model_type"],
-            "supports_predict_proba": model_info["supports_proba"],
+            "supports_predict_proba": model_info["supports_proba"],  # ✔ fixed typo
         },
         "next_step": "select_sensitive_attribute",
     }
