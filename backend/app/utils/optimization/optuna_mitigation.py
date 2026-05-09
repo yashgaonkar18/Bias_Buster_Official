@@ -10,7 +10,7 @@ import logging
 
 optuna.logging.set_verbosity(optuna.logging.WARNING)
 
-def run_optuna_optimization(strategy: str, df, model, target_column: str, sensitive_col: str, n_trials: int = 15):
+def run_optuna_optimization(strategy: str, df, model, target_column: str, sensitive_col: str, n_trials: int = 15, method: str = "optuna"):
     """
     Run an Optuna study to find the best hyperparameters for the selected mitigation strategy.
     Optimizes for a balance of high accuracy and low bias severity.
@@ -114,7 +114,23 @@ def run_optuna_optimization(strategy: str, df, model, target_column: str, sensit
 
         return fitness
 
-    study = optuna.create_study(direction="maximize")
+    sampler = None
+    if method == "gridsearch":
+        search_space = {}
+        if strategy == "smote":
+            search_space = {"k_neighbors": list(range(1, 11))}
+        elif strategy == "threshold":
+            search_space = {
+                "constraints": ["demographic_parity", "equalized_odds"], 
+                "grid_size": [50, 100, 150, 200, 250, 300, 350, 400]
+            }
+        elif strategy == "reweighting":
+            search_space = {"clip_weights": [True, False]}
+        
+        sampler = optuna.samplers.GridSampler(search_space)
+        n_trials = 100
+
+    study = optuna.create_study(direction="maximize", sampler=sampler)
     study.optimize(objective, n_trials=n_trials)
     
     best_trial = study.best_trial

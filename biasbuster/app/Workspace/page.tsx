@@ -308,6 +308,12 @@ export default function BiasBuster() {
   const [leaderboardResults, setLeaderboardResults] = useState<any[]>([]);
   const [aiRecommendation, setAiRecommendation] = useState<any>(null);
 
+  const [optimizationStrategy, setOptimizationStrategy] = useState("optuna");
+  const [accuracyWeight, setAccuracyWeight] = useState(0.5);
+  const [fairnessWeight, setFairnessWeight] = useState(0.5);
+  const [isRetraining, setIsRetraining] = useState(false);
+  const [retrainingResults, setRetrainingResults] = useState<any>(null);
+
   const handleModelFile = (file: File | null) => {
     setModelFile(file);
     setIsModelValid(false);
@@ -545,32 +551,44 @@ export default function BiasBuster() {
           </div>
 
             <div className="pt-4 border-t border-gray-200 mt-6">
-              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
-                <div>
-                  <div className="font-bold text-gray-800 text-sm">Automated Hyperparameter Optimization</div>
-                  <div className="text-xs text-gray-600 mt-1">Use Optuna to search for the optimal parameters that maximize accuracy while minimizing bias.</div>
+              <div className="flex flex-col p-4 bg-gray-50 rounded-lg border border-gray-200 gap-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="font-bold text-gray-800 text-sm">Automated Hyperparameter Optimization</div>
+                    <div className="text-xs text-gray-600 mt-1">Search for the optimal mitigation parameters that maximize accuracy while minimizing bias.</div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <select 
+                        value={optimizationStrategy} 
+                        onChange={(e) => setOptimizationStrategy(e.target.value)}
+                        className="px-2 py-1.5 text-sm border rounded bg-white font-semibold text-gray-700"
+                      >
+                         <option value="optuna">Optuna</option>
+                         <option value="gridsearch">GridSearch</option>
+                    </select>
+                    <button 
+                       disabled={isOptimizing}
+                       onClick={async (e) => {
+                         e.preventDefault();
+                         if (!biasResults || !biasResults.report_id) return;
+                         setIsOptimizing(true);
+                         setProcessingStep(`Running ${optimizationStrategy} optimization study...`);
+                         try {
+                            const res = await api.post(`/api/mitigation/optimize/${selectedStrategy}/${biasResults.report_id}?method=${optimizationStrategy}`);
+                            setStrategyConfig(res.data.optimization_result.best_params);
+                            alert(`Optimization Complete!\nBest parameters found: ${JSON.stringify(res.data.optimization_result.best_params)}\nThese will be used when you click Go to Mitigation.`);
+                         } catch (err: any) {
+                            alert(err?.response?.data?.detail || "Optimization failed");
+                         } finally {
+                            setIsOptimizing(false);
+                            setProcessingStep(null);
+                         }
+                       }}
+                       className={`px-4 py-2 text-sm font-semibold rounded ${isOptimizing ? 'bg-gray-300 text-gray-600 cursor-not-allowed' : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm'}`}>
+                      {isOptimizing ? 'Optimizing...' : 'Run Search'}
+                    </button>
+                  </div>
                 </div>
-                <button 
-                   disabled={isOptimizing}
-                   onClick={async (e) => {
-                     e.preventDefault();
-                     if (!biasResults || !biasResults.report_id) return;
-                     setIsOptimizing(true);
-                     setProcessingStep("Running Optuna optimization study (15 trials)...");
-                     try {
-                        const res = await api.post(`/api/mitigation/optimize/${selectedStrategy}/${biasResults.report_id}`);
-                        setStrategyConfig(res.data.optimization_result.best_params);
-                        alert(`Optimization Complete!\nBest parameters found: ${JSON.stringify(res.data.optimization_result.best_params)}\nThese will be used when you click Go to Mitigation.`);
-                     } catch (err: any) {
-                        alert(err?.response?.data?.detail || "Optimization failed");
-                     } finally {
-                        setIsOptimizing(false);
-                        setProcessingStep(null);
-                     }
-                   }}
-                   className={`px-4 py-2 text-sm font-semibold rounded ${isOptimizing ? 'bg-gray-300 text-gray-600 cursor-not-allowed' : 'bg-indigo-600 text-white hover:bg-indigo-700'}`}>
-                  {isOptimizing ? 'Optimizing...' : 'Run Optuna Search'}
-                </button>
               </div>
               
               {Object.keys(strategyConfig).length > 0 && (
@@ -578,6 +596,50 @@ export default function BiasBuster() {
                     Active Config: {JSON.stringify(strategyConfig)}
                  </div>
               )}
+            </div>
+
+            {/* RETRAINING UI */}
+            <div className="pt-4 border-t border-gray-200 mt-6">
+              <div className="flex flex-col gap-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="font-bold text-blue-900 text-sm">Full Retraining & Stability Pipeline</div>
+                    <div className="text-xs text-blue-800 mt-1">Split data, apply {selectedStrategy}, retrain alongside benchmark models, and test stability on a fresh holdout set.</div>
+                  </div>
+                  <button 
+                     disabled={isRetraining || selectedStrategy === 'threshold'}
+                     onClick={async (e) => {
+                       e.preventDefault();
+                       if (!uploadId) return;
+                       setIsRetraining(true);
+                       setProcessingStep("Running Retraining Pipeline...");
+                       try {
+                          const res = await api.post("/api/retraining/run", {
+                             upload_id: uploadId,
+                             target_column: selectedTarget,
+                             sensitive_columns: selectedSensitive,
+                             strategy: selectedStrategy,
+                             train_additional_models: true,
+                             random_seed: 42,
+                             test_size: 0.2
+                          });
+                          setRetrainingResults(res.data);
+                          setActiveResponseTab("body");
+                          setShowResponse(true);
+                       } catch (err: any) {
+                          alert(err?.response?.data?.detail || "Retraining failed");
+                       } finally {
+                          setIsRetraining(false);
+                          setProcessingStep(null);
+                       }
+                     }}
+                     className={`px-4 py-2 text-sm font-semibold rounded ${isRetraining || selectedStrategy === 'threshold' ? 'bg-blue-300 text-blue-600 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm'}`}
+                     title={selectedStrategy === 'threshold' ? "Threshold Optimizer is a post-processing technique and does not support full retraining." : ""}
+                  >
+                    {isRetraining ? 'Retraining...' : 'Run Retraining Pipeline'}
+                  </button>
+                </div>
+              </div>
             </div>
 
             {/* AUTO EXPERIMENTATION ENGINE */}
@@ -1008,6 +1070,53 @@ export default function BiasBuster() {
           </div>
         </div>
       );
+    }
+
+    if (requestMethod === "MITIGATE" && retrainingResults) {
+        return (
+           <div className="space-y-8 max-w-5xl">
+             <div className="bg-blue-50 border border-blue-200 rounded-lg p-5">
+                <h3 className="text-lg font-bold text-blue-800 mb-2 flex items-center gap-2">
+                   <ShieldCheck className="w-5 h-5"/> Retraining Pipeline Successful
+                </h3>
+                <div className="text-sm text-blue-700 mt-2 mb-4">{retrainingResults.summary}</div>
+                <div className="grid grid-cols-2 gap-4 text-sm mt-4 bg-white p-4 rounded border border-blue-100">
+                  <InfoRow label="Strategy" value={retrainingResults.strategy_used.toUpperCase()} />
+                  <InfoRow label="Model Version" value={retrainingResults.model_version} />
+                  <InfoRow label="Stability" value={retrainingResults.fairness_stability.stable ? "Stable ✅" : "Unstable ❌"} />
+                  <InfoRow label="Observation" value={retrainingResults.fairness_stability.observation} />
+                </div>
+             </div>
+             
+             <div className="grid grid-cols-3 gap-6">
+                <div className="p-4 bg-gray-50 border rounded-lg">
+                   <div className="font-bold text-gray-500 text-xs tracking-wider uppercase mb-3">Original Model</div>
+                   <div className="space-y-2 text-sm">
+                      <MetricRow name="Accuracy" value={retrainingResults.original_model_metrics.accuracy} />
+                      <MetricRow name="DPD" value={retrainingResults.original_model_metrics.dpd} />
+                      <MetricRow name="EOD" value={retrainingResults.original_model_metrics.eod} />
+                   </div>
+                </div>
+                <div className="p-4 bg-orange-50 border border-orange-100 rounded-lg">
+                   <div className="font-bold text-orange-600 text-xs tracking-wider uppercase mb-3">Mitigated (Initial)</div>
+                   <div className="space-y-2 text-sm">
+                      <MetricRow name="Accuracy" value={retrainingResults.mitigated_model_metrics.accuracy} />
+                      <MetricRow name="DPD" value={retrainingResults.mitigated_model_metrics.dpd} />
+                      <MetricRow name="EOD" value={retrainingResults.mitigated_model_metrics.eod} />
+                   </div>
+                </div>
+                <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                   <div className="font-bold text-green-700 text-xs tracking-wider uppercase mb-3">Retrained (Final)</div>
+                   <div className="space-y-2 text-sm">
+                      <MetricRow name="Accuracy" value={retrainingResults.retrained_model_metrics.accuracy} />
+                      <MetricRow name="DPD" value={retrainingResults.retrained_model_metrics.dpd} />
+                      <MetricRow name="EOD" value={retrainingResults.retrained_model_metrics.eod} />
+                   </div>
+                </div>
+             </div>
+             <button onClick={() => setRetrainingResults(null)} className="px-4 py-2 text-sm text-gray-600 bg-gray-100 hover:bg-gray-200 rounded font-medium">Back to Mitigation Logs</button>
+           </div>
+        );
     }
 
     if (requestMethod === "MITIGATE" && mitigationResults) {

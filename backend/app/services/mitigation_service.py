@@ -49,7 +49,7 @@ async def get_mitigation_recommendation(report_id: int, session: AsyncSession):
     recommendation = recommend_strategy(metrics, dataset_shape, upload.model_type)
     return recommendation
 
-async def run_optimization(report_id: int, strategy: str, session: AsyncSession):
+async def run_optimization(report_id: int, strategy: str, session: AsyncSession, method: str = "optuna"):
     bias_report = await session.get(BiasReport, report_id)
     if not bias_report:
         raise ValueError("Bias report not found")
@@ -67,8 +67,8 @@ async def run_optimization(report_id: int, strategy: str, session: AsyncSession)
     else:
         sensitive_col = list(bias_report.sensitive_audit.keys())[0]
 
-    from app.utils.optimization import run_optuna_optimization
-    result = run_optuna_optimization(strategy, df, model, target_column, sensitive_col)
+    from app.utils.optimization.optuna_mitigation import run_optuna_optimization
+    result = run_optuna_optimization(strategy, df, model, target_column, sensitive_col, method=method)
     
     return {
         "status": "optimization_success",

@@ -42,6 +42,7 @@ async def auto_experiment_mitigation(
 async def optimize_mitigation_strategy(
     strategy: str,
     report_id: int,
+    method: str = "optuna",
     session: AsyncSession = Depends(get_session)
 ):
     valid_strategies = ["smote", "reweighting", "threshold"]
@@ -49,7 +50,7 @@ async def optimize_mitigation_strategy(
         raise HTTPException(status_code=400, detail=f"Invalid strategy. Must be one of {valid_strategies}")
         
     try:
-        return await run_optimization(report_id, strategy, session)
+        return await run_optimization(report_id, strategy, session, method)
     except ValueError as ve:
         raise HTTPException(status_code=400, detail=str(ve))
     except Exception as e:
