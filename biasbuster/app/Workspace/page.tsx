@@ -31,30 +31,198 @@ const InfoRow = ({ label, value }: { label: string; value?: any }) => (
   </div>
 );
 
-const ProcessingLoader = ({ step }: { step: string }) => {
-  return (
-    <div className="mb-6 p-6 border rounded-lg bg-linear-to-r from-blue-50 to-indigo-50 border-blue-200">
-      <div className="flex items-center gap-4">
-        {/* Animated Spinner */}
-        <div className="relative">
-          <div className="h-10 w-10 rounded-full border-4 border-blue-200"></div>
-          <div className="absolute top-0 left-0 h-10 w-10 rounded-full border-4 border-blue-500 border-t-transparent animate-spin"></div>
-        </div>
+const ProcessingLoader = ({
+  step,
+  phase,
+}: {
+  step: string;
+  phase: string;
+}) => {
 
-        {/* Text */}
-        <div>
-          <div className="text-sm font-semibold text-blue-800">
-            Processing Request
+  const phaseConfig = {
+
+    VALIDATE: {
+      title: "Validation Pipeline",
+      description:
+        "BiasBuster is validating uploaded assets and preparing the fairness analysis pipeline.",
+
+      steps: [
+        "Dataset Validation",
+        "Model Verification",
+        "Schema Analysis",
+        "Pipeline Initialization",
+      ],
+    },
+
+    DETECT: {
+      title: "Bias Detection Engine",
+      description:
+        "BiasBuster is analyzing sensitive attributes, calculating fairness metrics, and detecting demographic bias patterns.",
+
+      steps: [
+        "Fairness Metric Analysis",
+        "Sensitive Attribute Audit",
+        "Bias Pattern Detection",
+        "Generating Fairness Report",
+      ],
+    },
+
+    MITIGATE: {
+      title: "Bias Mitigation Engine",
+      description:
+        "BiasBuster is applying mitigation strategies and optimizing fairness across demographic groups.",
+
+      steps: [
+        "Mitigation Strategy Setup",
+        "Bias Reduction Processing",
+        "Fairness Optimization",
+        "Generating Mitigated Model",
+      ],
+    },
+    OPTIMIZE: {
+      title: "Fairness-Aware Optimization",
+      description:
+        "BiasBuster is running hyperparameter optimization to restore accuracy while preserving fairness gains.",
+      steps: [
+        "Parameter Search Setup",
+        "Trial Evaluation",
+        "Best Params Selection",
+        "Optimized Model Evaluation",
+      ],
+    },
+    COMPARE: {
+      title: "Model Comparison Engine",
+      description:
+        "BiasBuster is fetching and comparing all model variants across accuracy and fairness dimensions.",
+      steps: [
+        "Loading Model Registry",
+        "Computing Combined Scores",
+        "Ranking Model Variants",
+        "Generating Comparison Report",
+      ],
+    },
+    RECOMMEND: {
+      title: "Strategy Recommendation Engine",
+      description:
+        "BiasBuster is analyzing your dataset's fairness profile and computing the optimal mitigation strategy for your model.",
+      steps: [
+        "Fairness Profile Analysis",
+        "Strategy Scoring",
+        "Tradeoff Evaluation",
+        "Generating Recommendation Report",
+      ],
+    },
+
+  };
+
+  const current =
+    phaseConfig[phase as keyof typeof phaseConfig] ||
+    phaseConfig.VALIDATE;
+
+  return (
+    <div className="min-h-[600px] flex items-center justify-center">
+
+      <div className="w-full max-w-2xl">
+
+        <div className="rounded-3xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+
+          {/* Top Accent */}
+          <div className="h-1 w-full bg-gradient-to-r from-orange-500 via-red-500 to-orange-400" />
+
+          <div className="p-10">
+
+            {/* Header */}
+            <div className="flex items-start gap-5">
+
+              {/* Loader */}
+              <div className="relative flex-shrink-0">
+
+                <div className="w-14 h-14 rounded-2xl border-4 border-orange-100"></div>
+
+                <div className="absolute inset-0 rounded-2xl border-4 border-orange-500 border-t-transparent animate-spin"></div>
+
+              </div>
+
+              {/* Text */}
+              <div className="flex-1">
+
+                <h2 className="text-2xl font-bold text-gray-900">
+                  {current.title}
+                </h2>
+
+                <p className="mt-2 text-sm text-gray-500 leading-relaxed">
+                  {current.description}
+                </p>
+
+                <div className="mt-5 inline-flex items-center gap-2 rounded-full bg-orange-50 border border-orange-100 px-4 py-2">
+
+                  <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></div>
+
+                  <span className="text-sm font-medium text-orange-700">
+                    {step}
+                  </span>
+
+                </div>
+
+              </div>
+
+            </div>
+
+            {/* Progress */}
+            <div className="mt-10">
+
+              <div className="flex items-center justify-between mb-2">
+
+                <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Progress
+                </span>
+
+                <span className="text-xs font-semibold text-gray-700">
+                  Processing
+                </span>
+
+              </div>
+
+              <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
+
+                <div className="h-full w-2/3 bg-gradient-to-r from-orange-500 to-red-500 rounded-full animate-pulse"></div>
+
+              </div>
+
+            </div>
+
+            {/* Steps */}
+            <div className="mt-10 grid grid-cols-2 gap-4">
+
+              {current.steps.map((item, idx) => (
+
+                <div
+                  key={idx}
+                  className="rounded-2xl border border-gray-100 bg-gray-50 px-4 py-4"
+                >
+
+                  <div className="flex items-center gap-3">
+
+                    <div className="w-2 h-2 rounded-full bg-orange-500"></div>
+
+                    <span className="text-sm font-medium text-gray-700">
+                      {item}
+                    </span>
+
+                  </div>
+
+                </div>
+
+              ))}
+
+            </div>
+
           </div>
 
-          <div className="text-xs text-blue-600 mt-1">{step}</div>
         </div>
+
       </div>
 
-      {/* Progress Animation */}
-      <div className="mt-4 w-full bg-blue-100 rounded-full h-2 overflow-hidden">
-        <div className="h-full bg-blue-500 animate-pulse w-2/3"></div>
-      </div>
     </div>
   );
 };
@@ -95,11 +263,10 @@ const MetricRow = ({ name, value, baselineValue }: any) => {
 
 const BiasSummary = ({ report }: { report: any }) => (
   <div
-    className={`border rounded-lg p-5 ${
-      report.bias_present
-        ? "bg-red-50 border-red-200"
-        : "bg-green-50 border-green-200"
-    }`}
+    className={`border rounded-lg p-5 ${report.bias_present
+      ? "bg-red-50 border-red-200"
+      : "bg-green-50 border-green-200"
+      }`}
   >
     <h3 className="text-lg font-bold">
       {report.bias_present ? "Bias Detected" : "No Significant Bias"}
@@ -428,13 +595,12 @@ const ComparisonDashboard = ({
           {models.map((model: any) => (
             <div
               key={model.model_id}
-              className={`absolute size-4 rounded-full border-2 transform -translate-x-1/2 translate-y-1/2 transition-all cursor-pointer group hover:scale-150 z-20 ${
-                model.source_type === "original"
-                  ? "bg-gray-500 border-white shadow-gray-200"
-                  : model.source_type === "mitigated"
-                    ? "bg-blue-500 border-white shadow-blue-200"
-                    : "bg-purple-500 border-white shadow-purple-200"
-              }`}
+              className={`absolute size-4 rounded-full border-2 transform -translate-x-1/2 translate-y-1/2 transition-all cursor-pointer group hover:scale-150 z-20 ${model.source_type === "original"
+                ? "bg-gray-500 border-white shadow-gray-200"
+                : model.source_type === "mitigated"
+                  ? "bg-blue-500 border-white shadow-blue-200"
+                  : "bg-purple-500 border-white shadow-purple-200"
+                }`}
               style={{
                 left: `${Math.min(100, Math.max(0, (model.fairness_score || 0) * 100))}%`,
                 bottom: `${Math.min(100, Math.max(0, (model.accuracy || 0) * 100))}%`,
@@ -642,6 +808,7 @@ export default function BiasBuster() {
   const [uploadId, setUploadId] = useState<number | null>(null);
   const [uploading, setUploading] = useState(false);
   const [processingStep, setProcessingStep] = useState<string | null>(null);
+  const [processingPhase, setProcessingPhase] = useState<string>("VALIDATE"); // add this
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [datasetFile, setDatasetFile] = useState<File | null>(null);
   const [uploadResponse, setUploadResponse] = useState<any | null>(null);
@@ -715,6 +882,7 @@ export default function BiasBuster() {
 
     try {
       setUploading(true);
+      setProcessingPhase("VALIDATE");
       setProcessingStep("Uploading dataset and model...");
       setUploadError(null);
 
@@ -735,7 +903,7 @@ export default function BiasBuster() {
       setIsDatasetValid(true);
       setIsModelValid(true);
 
-      return res.data; // ✅ IMPORTANT
+      return res.data;
     } catch (err: any) {
       setUploadError(err?.response?.data?.detail || "Upload failed");
       setCurrentPhase("UPLOAD");
@@ -795,6 +963,7 @@ export default function BiasBuster() {
   const fetchComparison = async () => {
     if (!uploadId) return;
     try {
+      setProcessingPhase("COMPARE");
       setProcessingStep("Fetching comparison data from registry...");
       const res = await api.get(`/api/models/compare/${uploadId}`);
       setComparisonData(res.data);
@@ -813,6 +982,7 @@ export default function BiasBuster() {
 
   const applyOptimization = async () => {
     try {
+      setProcessingPhase("OPTIMIZE");
       setProcessingStep(`Running ${optMethod} optimization...`);
       const res = await api.post(`/api/optimize`, {
         upload_id: uploadId,
@@ -837,6 +1007,7 @@ export default function BiasBuster() {
 
   const applyMitigation = async (strategy: string) => {
     try {
+      setProcessingPhase("MITIGATE");
       setProcessingStep(`Applying ${strategy} strategy...`);
       const res = await api.post(`/api/bias/mitigate`, {
         upload_id: uploadId,
@@ -924,12 +1095,13 @@ export default function BiasBuster() {
       }
 
       try {
+        setProcessingPhase("DETECT");
         setProcessingStep("Preparing dataset for bias audit...");
         await new Promise((r) => setTimeout(r, 800));
 
         setProcessingStep("Running fairness metrics (DPD, EOD, DIR)...");
         const res = await api.post("/api/bias/detect", {
-          upload_id: uploadId, // ⚠️ NUMBER
+          upload_id: uploadId,
           target_column: selectedTarget,
           sensitive_columns: selectedSensitive,
         });
@@ -1095,7 +1267,7 @@ export default function BiasBuster() {
                   <div className="text-xs text-gray-500">DPD Reduction</div>
                   <div className="font-bold text-green-600">
                     {recommendation?.validated_improvements?.dpd_reduction !==
-                    undefined
+                      undefined
                       ? `+${(recommendation?.validated_improvements?.dpd_reduction * 100).toFixed(2)}%`
                       : "-"}
                   </div>
@@ -1104,7 +1276,7 @@ export default function BiasBuster() {
                   <div className="text-xs text-gray-500">EOD Reduction</div>
                   <div className="font-bold text-green-600">
                     {recommendation?.validated_improvements?.eod_reduction !==
-                    undefined
+                      undefined
                       ? `+${(recommendation?.validated_improvements?.eod_reduction * 100).toFixed(2)}%`
                       : "-"}
                   </div>
@@ -1151,11 +1323,10 @@ export default function BiasBuster() {
                     {recommendation.strategy_rankings.map((strat: any) => (
                       <div
                         key={strat.strategy}
-                        className={`p-4 border rounded-lg cursor-pointer transition-colors ${
-                          selectedStrategy === strat.strategy
-                            ? "border-blue-500 bg-blue-50 ring-2 ring-blue-500"
-                            : "hover:border-blue-300 bg-white"
-                        }`}
+                        className={`p-4 border rounded-lg cursor-pointer transition-colors ${selectedStrategy === strat.strategy
+                          ? "border-blue-500 bg-blue-50 ring-2 ring-blue-500"
+                          : "hover:border-blue-300 bg-white"
+                          }`}
                         onClick={() => setSelectedStrategy(strat.strategy)}
                       >
                         <div className="flex justify-between items-start mb-2">
@@ -1476,7 +1647,7 @@ export default function BiasBuster() {
     }
 
     // Phase 1, 2, 3: Dataset and Model Analysis Configuration UI
-    if (activeRequestObj.type === "Dataset") {
+    if (activeRequestObj.type === "Dataset" && requestMethod === "VALIDATE") {
       return (
         <div className="max-w-5xl">
           <h3 className="text-lg font-bold text-gray-800 mb-4">
@@ -1732,11 +1903,10 @@ export default function BiasBuster() {
           )}
           <div
             className={`p-4 rounded-lg border flex items-center gap-3
-        ${
-          biasResults.bias_present
-            ? "bg-red-50 border-red-200 text-red-700"
-            : "bg-green-50 border-green-200 text-green-700"
-        }`}
+        ${biasResults.bias_present
+                ? "bg-red-50 border-red-200 text-red-700"
+                : "bg-green-50 border-green-200 text-green-700"
+              }`}
           >
             <CheckCircle className="w-5 h-5" />
 
@@ -1758,6 +1928,7 @@ export default function BiasBuster() {
                   setRequestMethod("MITIGATE");
                   setShowResponse(false);
                   try {
+                    setProcessingPhase("RECOMMEND");
                     setProcessingStep("Fetching strategy recommendation...");
                     const rec = await api.post(`/api/bias/recommend-strategy`, {
                       upload_id: uploadId,
@@ -1994,24 +2165,24 @@ export default function BiasBuster() {
                       },
                       ...(optimizationResults
                         ? [
-                            {
-                              label: "Optimized Model",
-                              source: "optimized",
-                              accuracy:
-                                optimizationResults.optimized_model?.performance
-                                  ?.accuracy ||
-                                optimizationResults.optimized_model?.accuracy,
-                              fairness_score:
-                                optimizationResults.optimized_model?.fairness
-                                  ?.aggregate?.fairness_score ||
-                                optimizationResults.optimized_model
-                                  ?.fairness_score,
-                              dpd: optimizationResults.optimized_model?.fairness
-                                ?.aggregate?.dpd,
-                              eod: optimizationResults.optimized_model?.fairness
-                                ?.aggregate?.eod,
-                            },
-                          ]
+                          {
+                            label: "Optimized Model",
+                            source: "optimized",
+                            accuracy:
+                              optimizationResults.optimized_model?.performance
+                                ?.accuracy ||
+                              optimizationResults.optimized_model?.accuracy,
+                            fairness_score:
+                              optimizationResults.optimized_model?.fairness
+                                ?.aggregate?.fairness_score ||
+                              optimizationResults.optimized_model
+                                ?.fairness_score,
+                            dpd: optimizationResults.optimized_model?.fairness
+                              ?.aggregate?.dpd,
+                            eod: optimizationResults.optimized_model?.fairness
+                              ?.aggregate?.eod,
+                          },
+                        ]
                         : []),
                     ].map((item) => (
                       <div
@@ -2105,18 +2276,18 @@ export default function BiasBuster() {
               {["reweighting", "smote"].includes(
                 mitigationResults.strategy_applied,
               ) && (
-                <button
-                  onClick={() => {
-                    window.open(
-                      `http://localhost:8000/api/correction/download-dataset/${mitigationResults.correction_id}`,
-                      "_blank",
-                    );
-                  }}
-                  className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-50 flex items-center gap-2 shadow-sm"
-                >
-                  <Database className="w-4 h-4" /> Download Corrected Dataset
-                </button>
-              )}
+                  <button
+                    onClick={() => {
+                      window.open(
+                        `http://localhost:8000/api/correction/download-dataset/${mitigationResults.correction_id}`,
+                        "_blank",
+                      );
+                    }}
+                    className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-50 flex items-center gap-2 shadow-sm"
+                  >
+                    <Database className="w-4 h-4" /> Download Corrected Dataset
+                  </button>
+                )}
             </div>
 
             <button
@@ -2602,8 +2773,11 @@ export default function BiasBuster() {
           </div>
 
           <div className="p-6 bg-white">
-            {(uploading || processingStep) && (
-              <ProcessingLoader step={processingStep || "Processing..."} />
+            {processingStep && (
+              <ProcessingLoader
+                step={processingStep}
+                phase={processingPhase}
+              />
             )}
 
             {renderRequestBody()}
@@ -2634,11 +2808,10 @@ export default function BiasBuster() {
                 <div className="flex gap-6">
                   <button
                     onClick={() => setActiveResponseTab("body")}
-                    className={`px-1 py-3 text-sm font-medium ${
-                      activeResponseTab === "body"
-                        ? "text-orange-600 border-b-2 border-orange-500"
-                        : "text-gray-600 hover:text-gray-900"
-                    }`}
+                    className={`px-1 py-3 text-sm font-medium ${activeResponseTab === "body"
+                      ? "text-orange-600 border-b-2 border-orange-500"
+                      : "text-gray-600 hover:text-gray-900"
+                      }`}
                   >
                     Body
                   </button>
