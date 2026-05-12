@@ -1921,7 +1921,6 @@ export default function BiasBuster() {
                 No significant bias detected. Model is safe for deployment.
               </span>
             )}
-            {/* Next Phase Button */}
             {biasResults.bias_present && (
               <button
                 onClick={async () => {
