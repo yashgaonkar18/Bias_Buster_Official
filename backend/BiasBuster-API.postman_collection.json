@@ -1,0 +1,147 @@
+{
+  "info": {
+    "_postman_id": "biasbuster-api-collection",
+    "name": "BiasBuster API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Upload Files",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            { "key": "dataset_file", "type": "file", "src": "" },
+            { "key": "model_file", "type": "file", "src": "" }
+          ]
+        },
+        "url": { "raw": "{{baseUrl}}/api/upload", "host": ["{{baseUrl}}"], "path": ["api", "upload"] }
+      }
+    },
+    {
+      "name": "Bias Baseline",
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"param1\": \"value\"\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/api/bias/baseline", "host": ["{{baseUrl}}"], "path": ["api", "bias", "baseline"] }
+      }
+    },
+    {
+      "name": "Bias Detect",
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"param1\": \"value\"\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/api/bias/detect", "host": ["{{baseUrl}}"], "path": ["api", "bias", "detect"] }
+      }
+    },
+    {
+      "name": "Get Bias Report",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/api/bias/report/1", "host": ["{{baseUrl}}"], "path": ["api", "bias", "report", "1"] }
+      }
+    },
+    {
+      "name": "Mitigation Recommend",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/api/mitigation/recommend/1", "host": ["{{baseUrl}}"], "path": ["api", "mitigation", "recommend", "1"] }
+      }
+    },
+    {
+      "name": "Mitigation Auto-Experiment",
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"sensitive_attributes\": [\"attr1\"],\n  \"bias_scores\": {\"score1\": 0.5}\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/api/mitigation/auto-experiment/1", "host": ["{{baseUrl}}"], "path": ["api", "mitigation", "auto-experiment", "1"] }
+      }
+    },
+    {
+      "name": "Mitigation Optimize",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/api/mitigation/optimize/smote/1", "host": ["{{baseUrl}}"], "path": ["api", "mitigation", "optimize", "smote", "1"] }
+      }
+    },
+    {
+      "name": "Mitigation Apply",
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"sensitive_attributes\": [\"attr1\"],\n  \"bias_scores\": {\"score1\": 0.5},\n  \"strategy_config\": {}\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/api/mitigation/apply/smote/1", "host": ["{{baseUrl}}"], "path": ["api", "mitigation", "apply", "smote", "1"] }
+      }
+    },
+    {
+      "name": "Export Mitigated Dataset",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/api/mitigation/export/dataset/1", "host": ["{{baseUrl}}"], "path": ["api", "mitigation", "export", "dataset", "1"] }
+      }
+    },
+    {
+      "name": "Export Mitigated Model",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/api/mitigation/export/model/1", "host": ["{{baseUrl}}"], "path": ["api", "mitigation", "export", "model", "1"] }
+      }
+    },
+    {
+      "name": "Optimization Run",
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"param1\": \"value\"\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/api/optimization/run", "host": ["{{baseUrl}}"], "path": ["api", "optimization", "run"] }
+      }
+    },
+    {
+      "name": "Retraining Run",
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"param1\": \"value\"\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/api/retraining/run", "host": ["{{baseUrl}}"], "path": ["api", "retraining", "run"] }
+      }
+    },
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/health", "host": ["{{baseUrl}}"], "path": ["health"] }
+      }
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8000" }
+  ]
+}

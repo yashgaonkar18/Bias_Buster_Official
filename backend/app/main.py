@@ -7,7 +7,6 @@ from .routers.upload import router as upload_router
 from .routers.bias import router as bias_router
 from .routers.mitigation import router as mitigation_router
 from .routers.optimization import router as optimization_router
-from .routers.retraining import router as retraining_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -33,7 +32,6 @@ app.include_router(upload_router)
 app.include_router(bias_router)
 app.include_router(mitigation_router)
 app.include_router(optimization_router)
-app.include_router(retraining_router)
 
 
 @app.get("/health")
