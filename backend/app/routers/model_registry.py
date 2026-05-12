@@ -272,6 +272,7 @@ async def add_notes(
 @router.get("/download/{model_id}")
 async def download_model(
     model_id: str,
+    format: str = Query(default="joblib", pattern="^(pkl|joblib)$"),
     session: AsyncSession = Depends(get_session),
 ):
     """
@@ -296,7 +297,11 @@ async def download_model(
             detail=f"Artifact file not found: {artifact_path}",
         )
 
-    download_name = cleanup_download_filename(os.path.basename(artifact_path))
+    base_name = os.path.splitext(os.path.basename(artifact_path))[0]
+    if format == "pkl":
+        download_name = cleanup_download_filename(f"{base_name}.pkl")
+    else:
+        download_name = cleanup_download_filename(f"{base_name}.joblib")
     if model.source_type == "original":
         upload = (
             await session.execute(
@@ -316,6 +321,7 @@ async def download_model(
 @router.get("/download-original/{upload_id}")
 async def download_original_model(
     upload_id: int,
+    format: str = Query(default="joblib", pattern="^(pkl|joblib)$"),
     session: AsyncSession = Depends(get_session),
 ):
     """Download the original uploaded model artifact."""
@@ -331,6 +337,12 @@ async def download_original_model(
         raise HTTPException(status_code=404, detail="Original model file not found")
 
     filename = record.original_model_filename or model_path.name
+
+    if format == "pkl":
+        filename = cleanup_download_filename(f"{os.path.splitext(filename)[0]}.pkl")
+    else:
+        filename = cleanup_download_filename(f"{os.path.splitext(filename)[0]}.joblib")
+
     return FileResponse(
         path=model_path,
         filename=cleanup_download_filename(filename),

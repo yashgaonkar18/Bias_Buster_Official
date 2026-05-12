@@ -1,0 +1,404 @@
+{
+  "report_id": "91962998-e5ab-4ce2-bbb4-0bd4b77ebccf",
+  "title": "Fairness Experiment Report - Upload 30",
+  "generated_at": "2026-05-12T11:30:44.065991Z",
+  "section_flags": {
+    "comparison": true,
+    "optimization": true,
+    "experiments": false,
+    "explainability": false
+  },
+  "overview": {
+    "upload_id": 30,
+    "dataset_filename": "adult.csv",
+    "model_filename": "adult_income_pipeline.pkl",
+    "model_type": "LogisticRegression",
+    "best_balanced_model_name": "ThresholdOptimizer_mitigated_threshold",
+    "best_accuracy_model_name": "Pipeline_mitigated_reweighting",
+    "best_fairness_model_name": "ThresholdOptimizer_mitigated_threshold",
+    "key_metrics": {
+      "accuracy": 0.8370869333770116,
+      "fairness_score": 0.9480314974100743,
+      "dpd": 0.08863116945808037,
+      "eod": 0.015305835721770966,
+      "dir": 0.5532178967413426,
+      "combined_score": 0.9036536717968493
+    }
+  },
+  "summary": "Fairness Experiment Report - Upload 30 summarizes the current fairness state for upload 30. Accuracy changed by -0.016 and fairness score changed by +0.091. Good fairness gain with acceptable accuracy trade-off. The best balanced model is ThresholdOptimizer_mitigated_threshold with combined score 0.904.",
+  "interpretation": {
+    "summary": "Good fairness gain with acceptable accuracy trade-off. The best balanced model is ThresholdOptimizer_mitigated_threshold with combined score 0.904.",
+    "accuracy_change": -0.0162,
+    "fairness_change": 0.0912
+  },
+  "comparison_models": [
+    {
+      "model_id": "8600580f-d4dd-4817-b118-89114d989ed8",
+      "model_name": "ThresholdOptimizer_mitigated_threshold",
+      "model_type": "ThresholdOptimizer",
+      "source_type": "mitigated",
+      "version": "v1_mitigated_threshold",
+      "accuracy": 0.8370869333770116,
+      "fairness_score": 0.9480314974100743,
+      "combined_score": 0.9036536717968493,
+      "dpd": 0.08863116945808037,
+      "eod": 0.015305835721770966,
+      "dir": 0.5532178967413426,
+      "bias_severity": "Low",
+      "recommendation_status": "recommended",
+      "download_url": "/api/models/download/8600580f-d4dd-4817-b118-89114d989ed8",
+      "dataset_download_url": null,
+      "artifact_name": "model_30_threshold_mitigated.joblib",
+      "summary": null,
+      "is_recommended": true
+    },
+    {
+      "model_id": "e8446ccc-6500-4179-ab49-a46a513ddae7",
+      "model_name": "ThresholdOptimizer_mitigated_threshold",
+      "model_type": "ThresholdOptimizer",
+      "source_type": "mitigated",
+      "version": "v1_mitigated_threshold",
+      "accuracy": 0.8384996519389051,
+      "fairness_score": 0.9468852124745296,
+      "combined_score": 0.9035309882602798,
+      "dpd": 0.08465099132008547,
+      "eod": 0.021578583730855305,
+      "dir": 0.5724234426669569,
+      "bias_severity": "Low",
+      "recommendation_status": null,
+      "download_url": "/api/models/download/e8446ccc-6500-4179-ab49-a46a513ddae7",
+      "dataset_download_url": null,
+      "artifact_name": "model_30_threshold_mitigated.joblib",
+      "summary": null,
+      "is_recommended": false
+    },
+    {
+      "model_id": "bc747d2d-6008-4929-a950-6ebd897e5096",
+      "model_name": "Pipeline_mitigated_reweighting",
+      "model_type": "Pipeline",
+      "source_type": "mitigated",
+      "version": "v1_mitigated_reweighting",
+      "accuracy": 0.8537529175709431,
+      "fairness_score": 0.8611422183515407,
+      "combined_score": 0.8581864980393017,
+      "dpd": 0.17941275899012762,
+      "eod": 0.09830280430679106,
+      "dir": 0.29711704091340685,
+      "bias_severity": "Medium",
+      "recommendation_status": null,
+      "download_url": "/api/models/download/bc747d2d-6008-4929-a950-6ebd897e5096",
+      "dataset_download_url": null,
+      "artifact_name": "model_30_reweighting_mitigated.joblib",
+      "summary": null,
+      "is_recommended": false
+    },
+    {
+      "model_id": "upload-30-original",
+      "model_name": "adult_income_pipeline.pkl",
+      "model_type": "LogisticRegression",
+      "source_type": "original",
+      "version": "v1_original",
+      "accuracy": 0.8533229597477581,
+      "fairness_score": 0.8568652920824252,
+      "combined_score": 0.8554483591485584,
+      "dpd": 0.1801533625589405,
+      "eod": 0.1061160532762091,
+      "dir": 0.2943849223189291,
+      "bias_severity": "Medium",
+      "recommendation_status": "baseline",
+      "download_url": "/api/models/download-original/30",
+      "dataset_download_url": null,
+      "artifact_name": "adult_income_pipeline.pkl",
+      "summary": "Baseline original upload used for comparison.",
+      "is_recommended": false
+    },
+    {
+      "model_id": "ef9cb6d6-dbeb-42b0-bf76-d61c2f9640df",
+      "model_name": "LogisticRegression_optimized_optuna",
+      "model_type": "LogisticRegression",
+      "source_type": "optimized",
+      "version": "v1_optimized",
+      "accuracy": 0.8534458048400967,
+      "fairness_score": 0.8578145094420867,
+      "combined_score": 0.8551932866808927,
+      "dpd": 0.18021361200055688,
+      "eod": 0.10415736911526974,
+      "dir": 0.294656625291515,
+      "bias_severity": "Medium",
+      "recommendation_status": null,
+      "download_url": "/api/models/download/ef9cb6d6-dbeb-42b0-bf76-d61c2f9640df",
+      "dataset_download_url": null,
+      "artifact_name": "adult_income_pipeline_optuna_optimized_model_20260512T113034Z.joblib",
+      "summary": null,
+      "is_recommended": false
+    },
+    {
+      "model_id": "6c119d2a-1d76-464f-a5ec-f644171e2e96",
+      "model_name": "Pipeline_mitigated_smote",
+      "model_type": "Pipeline",
+      "source_type": "mitigated",
+      "version": "v1_mitigated_smote",
+      "accuracy": 0.8105728676139389,
+      "fairness_score": 0.7587234916137646,
+      "combined_score": 0.7794632420138343,
+      "dpd": 0.3267624191176025,
+      "eod": 0.15579059765486836,
+      "dir": 0.2940651767227074,
+      "bias_severity": "High",
+      "recommendation_status": null,
+      "download_url": "/api/models/download/6c119d2a-1d76-464f-a5ec-f644171e2e96",
+      "dataset_download_url": null,
+      "artifact_name": "model_30_smote_mitigated.joblib",
+      "summary": null,
+      "is_recommended": false
+    }
+  ],
+  "chart_data": {
+    "labels": [
+      "ThresholdOptimizer_mitigated_threshold",
+      "ThresholdOptimizer_mitigated_threshold",
+      "Pipeline_mitigated_reweighting",
+      "adult_income_pipeline.pkl",
+      "LogisticRegression_optimized_optuna",
+      "Pipeline_mitigated_smote"
+    ],
+    "datasets": [
+      {
+        "label": "Accuracy",
+        "data": [
+          0.8370869333770116,
+          0.8384996519389051,
+          0.8537529175709431,
+          0.8533229597477581,
+          0.8534458048400967,
+          0.8105728676139389
+        ]
+      },
+      {
+        "label": "Fairness Score",
+        "data": [
+          0.9480314974100743,
+          0.9468852124745296,
+          0.8611422183515407,
+          0.8568652920824252,
+          0.8578145094420867,
+          0.7587234916137646
+        ]
+      },
+      {
+        "label": "Combined Score",
+        "data": [
+          0.9036536717968493,
+          0.9035309882602798,
+          0.8581864980393017,
+          0.8554483591485584,
+          0.8551932866808927,
+          0.7794632420138343
+        ]
+      }
+    ],
+    "scatter": [
+      {
+        "label": "ThresholdOptimizer_mitigated_threshold",
+        "x": 0.8370869333770116,
+        "y": 0.9480314974100743,
+        "combined": 0.9036536717968493,
+        "source_type": "mitigated"
+      },
+      {
+        "label": "ThresholdOptimizer_mitigated_threshold",
+        "x": 0.8384996519389051,
+        "y": 0.9468852124745296,
+        "combined": 0.9035309882602798,
+        "source_type": "mitigated"
+      },
+      {
+        "label": "Pipeline_mitigated_reweighting",
+        "x": 0.8537529175709431,
+        "y": 0.8611422183515407,
+        "combined": 0.8581864980393017,
+        "source_type": "mitigated"
+      },
+      {
+        "label": "adult_income_pipeline.pkl",
+        "x": 0.8533229597477581,
+        "y": 0.8568652920824252,
+        "combined": 0.8554483591485584,
+        "source_type": "original"
+      },
+      {
+        "label": "LogisticRegression_optimized_optuna",
+        "x": 0.8534458048400967,
+        "y": 0.8578145094420867,
+        "combined": 0.8551932866808927,
+        "source_type": "optimized"
+      },
+      {
+        "label": "Pipeline_mitigated_smote",
+        "x": 0.8105728676139389,
+        "y": 0.7587234916137646,
+        "combined": 0.7794632420138343,
+        "source_type": "mitigated"
+      }
+    ]
+  },
+  "experiments": {
+    "latest": null,
+    "latest_optimization": {
+      "optimization_id": "fd730f52-d41e-424c-b858-1bcd6c93e767",
+      "optimization_method": "optuna",
+      "best_params": {
+        "C": 73.66133983006472,
+        "penalty": "l2",
+        "solver": "lbfgs",
+        "max_iter": 404
+      },
+      "metrics_before": {
+        "target_info": {
+          "audit_mode": "multiclass",
+          "dropped_rows": 0,
+          "unique_classes": 2
+        },
+        "sensitive_columns": [
+          "gender"
+        ],
+        "fairness": {
+          "aggregate": {
+            "dpd": 0.1801533625589405,
+            "eod": 0.1061160532762091,
+            "dir": 0.2943849223189291,
+            "fairness_score": 0.8568652920824252
+          },
+          "by_attribute": {
+            "gender": {
+              "selection_rate": {
+                "Male": 0.25531393568147015,
+                "Female": 0.07516057312252965
+              },
+              "true_positive_rate": {
+                "Male": 0.6182698124621899,
+                "Female": 0.5121537591859808
+              },
+              "dpd": 0.1801533625589405,
+              "eod": 0.1061160532762091,
+              "dir": 0.2943849223189291
+            }
+          },
+          "warnings": []
+        },
+        "performance": {
+          "accuracy": 0.8533229597477581,
+          "precision": 0.73673191667539,
+          "recall": 0.6022075810729871,
+          "f1": 0.6627118644067796,
+          "roc_auc": 0.9079565832417317
+        },
+        "diagnostics": {
+          "dataset_shape": [
+            48842,
+            15
+          ],
+          "target_distribution": {
+            "0": 37155,
+            "1": 11687
+          },
+          "prediction_distribution": {
+            "0": 39289,
+            "1": 9553
+          },
+          "sensitive_groups": {
+            "gender": {
+              "Male": 32650,
+              "Female": 16192
+            }
+          },
+          "positive_label_mapping": {
+            "positive_label": 1,
+            "audit_mode": "multiclass"
+          }
+        },
+        "warnings": []
+      },
+      "metrics_after": {
+        "target_info": {
+          "audit_mode": "multiclass",
+          "dropped_rows": 0,
+          "unique_classes": 2
+        },
+        "sensitive_columns": [
+          "gender"
+        ],
+        "fairness": {
+          "aggregate": {
+            "dpd": 0.18021361200055688,
+            "eod": 0.10415736911526974,
+            "dir": 0.294656625291515,
+            "fairness_score": 0.8578145094420867
+          },
+          "by_attribute": {
+            "gender": {
+              "selection_rate": {
+                "Male": 0.2554977029096478,
+                "Female": 0.07528409090909091
+              },
+              "true_positive_rate": {
+                "Male": 0.6185722928009679,
+                "Female": 0.5144149236856982
+              },
+              "dpd": 0.18021361200055688,
+              "eod": 0.10415736911526974,
+              "dir": 0.294656625291515
+            }
+          },
+          "warnings": []
+        },
+        "performance": {
+          "accuracy": 0.8534458048400967,
+          "precision": 0.7368476100826273,
+          "recall": 0.6028065371780611,
+          "f1": 0.663121234939759,
+          "roc_auc": 0.9079924213519923
+        },
+        "diagnostics": {
+          "dataset_shape": [
+            48842,
+            15
+          ],
+          "target_distribution": {
+            "0": 37155,
+            "1": 11687
+          },
+          "prediction_distribution": {
+            "0": 39281,
+            "1": 9561
+          },
+          "sensitive_groups": {
+            "gender": {
+              "Male": 32650,
+              "Female": 16192
+            }
+          },
+          "positive_label_mapping": {
+            "positive_label": 1,
+            "audit_mode": "multiclass"
+          }
+        },
+        "warnings": []
+      },
+      "improvements": {
+        "accuracy_gain_percent": 0.01,
+        "fairness_gain_percent": 0.09,
+        "f1_gain_percent": 0.04,
+        "roc_auc_gain_percent": 0.0
+      },
+      "status": "success"
+    },
+    "latest_mitigation": {
+      "id": 61,
+      "strategy_used": "threshold",
+      "artifact_model_path": "/home/sidnaik04/Desktop/Bias_Buster_Official/backend/artifacts/models/model_30_threshold_mitigated.joblib",
+      "artifact_dataset_path": null
+    },
+    "latest_correction": null
+  }
+}

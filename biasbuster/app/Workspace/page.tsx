@@ -2,6 +2,18 @@
 import React, { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  Tooltip,
+  Legend,
+  Title,
+} from "chart.js";
+import { Bar, Scatter } from "react-chartjs-2";
+import {
   Upload,
   Play,
   FileText,
@@ -24,6 +36,17 @@ import {
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { getMetricInterpretation } from "@/utils/fairnessInterpretation";
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  Tooltip,
+  Legend,
+  Title,
+);
 const InfoRow = ({ label, value }: { label: string; value?: any }) => (
   <div>
     <div className="text-xs text-gray-500">{label}</div>
@@ -183,19 +206,73 @@ const ComparisonBar = ({
 const ComparisonDashboard = ({
   data,
   onDownload,
+  onGenerateReport,
+  reportBusy,
 }: {
   data: any;
   onDownload: (model: any) => void;
+  onGenerateReport: () => void;
+  reportBusy?: boolean;
 }) => {
   if (!data || !Array.isArray(data.models) || data.models.length === 0)
     return null;
 
-  const models = [...data.models].sort(
-    (a: any, b: any) => (b.combined_score || 0) - (a.combined_score || 0),
-  );
+  // Build lineage-first structure and deduplicate near-identical artifacts.
+  const sourcePriority: Record<string, number> = {
+    mitigated: 0,
+    original: 1,
+    optimized: 2,
+  };
+
+  const rawModels = Array.isArray(data.models) ? [...data.models] : [];
+
+  // Deduplicate by parent+strategy+rounded metrics signature
+  const seen = new Set<string>();
+  const deduped: any[] = [];
+  rawModels.forEach((m: any) => {
+    const parent =
+      m.parent_model_id || m.parent_id || m.origin_model_id || "root";
+    const strategy =
+      m.mitigation_strategy ||
+      m.strategy ||
+      m.optimization_method ||
+      m.source_type ||
+      "unknown";
+    const sig = `${parent}::${strategy}::${(m.accuracy || 0).toFixed(3)}::${(m.fairness_score || 0).toFixed(3)}::${(m.combined_score || 0).toFixed(3)}`;
+    if (!seen.has(sig)) {
+      seen.add(sig);
+      deduped.push(m);
+    }
+  });
+
+  const models = deduped.sort((a: any, b: any) => {
+    const pa = sourcePriority[a.source_type] ?? 99;
+    const pb = sourcePriority[b.source_type] ?? 99;
+    if (pa !== pb) return pa - pb;
+    return (b.combined_score || 0) - (a.combined_score || 0);
+  });
+
+  // Pick base uploaded model (original) or fallback to highest combined
+  const baseModel =
+    models.find((m: any) => m.source_type === "original") || models[0] || null;
+
+  // Build children map keyed by parent id
+  const byParent: Record<string, any[]> = {};
+  models.forEach((m: any) => {
+    const pid =
+      m.parent_model_id ||
+      m.parent_id ||
+      m.origin_model_id ||
+      (m.source_type === "original" ? "root" : baseModel?.model_id || "root");
+    if (!byParent[pid]) byParent[pid] = [];
+    byParent[pid].push(m);
+  });
+
   const recommended =
     models.find((m: any) => m.model_id === data.best_balanced_model) ||
-    models[0];
+    models[0] ||
+    null;
+
   const optimizationStatus =
     data.optimization_status ||
     (models.some((m: any) => m.source_type === "optimized")
@@ -214,6 +291,25 @@ const ComparisonDashboard = ({
     if (severity === "High") return "bg-red-100 text-red-700";
     if (severity === "Medium") return "bg-amber-100 text-amber-700";
     return "bg-emerald-100 text-emerald-700";
+  };
+
+  const variantLabel = (v: any) => {
+    if (!v) return "Variant";
+    if (v.source_type === "original") return "Base Model";
+    if (v.source_type === "mitigated") {
+      const strat = v.mitigation_strategy || v.strategy || "Mitigated";
+      return `${String(strat).replace(/[_-]/g, " ")} Mitigated Variant`;
+    }
+    if (v.source_type === "optimized") {
+      const opt = v.optimization_method || "Optimized";
+      return `${String(opt).replace(/[_-]/g, " ")} Optimized Variant`;
+    }
+    return (
+      v.mitigation_strategy ||
+      v.strategy ||
+      v.source_type ||
+      "Variant"
+    ).toString();
   };
 
   return (
@@ -257,124 +353,215 @@ const ComparisonDashboard = ({
             >
               <Download className="w-4 h-4" /> Download Recommended
             </button>
+            <button
+              onClick={onGenerateReport}
+              disabled={reportBusy}
+              className="bg-orange-950/90 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-orange-950 transition-colors flex items-center gap-2 shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              <FileText className="w-4 h-4" />
+              {reportBusy ? "Generating Report..." : "Generate Report"}
+            </button>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {models.map((model: any) => (
+      <div className="space-y-6">
+        {/* Base Uploaded Model */}
+        {baseModel && (
           <div
-            key={model.model_id}
-            className={`border rounded-xl p-5 bg-white transition-all hover:shadow-md ${model.model_id === recommended?.model_id ? "ring-2 ring-orange-500 border-orange-200" : "border-gray-200"}`}
+            className={`border rounded-2xl p-6 bg-white ${baseModel.model_id === recommended?.model_id ? "ring-2 ring-orange-500" : ""}`}
           >
-            <div className="flex items-start justify-between gap-3 mb-3">
+            <div className="flex items-start justify-between">
               <div>
-                <div className="flex flex-wrap gap-2 mb-2">
-                  <span
-                    className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${modelBadge(model.source_type)}`}
-                  >
-                    {model.source_type}
-                  </span>
-                  <span
-                    className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${severityBadge(model.bias_severity)}`}
-                  >
-                    {model.bias_severity || "Low"} Bias
-                  </span>
+                <div className="text-xs text-gray-500">Base Uploaded Model</div>
+                <h3 className="text-xl font-bold mt-1">
+                  {baseModel.model_name}
+                </h3>
+                <p className="text-sm text-gray-500">
+                  {baseModel.model_type || "Classifier"} •{" "}
+                  {baseModel.original_filename ||
+                    baseModel.artifact_name ||
+                    "uploaded model"}
+                </p>
+                <div className="mt-3 flex gap-3 text-sm">
+                  <div className="bg-gray-50 px-3 py-1 rounded">
+                    Accuracy: {(baseModel.accuracy || 0).toFixed(3)}
+                  </div>
+                  <div className="bg-gray-50 px-3 py-1 rounded">
+                    Fairness: {(baseModel.fairness_score || 0).toFixed(3)}
+                  </div>
                 </div>
-                <h4 className="font-bold text-gray-800 leading-snug">
-                  {model.model_name}
-                </h4>
-                <p className="text-[11px] text-gray-500 mt-1">
-                  {model.model_type || "Classifier"}
+                <p className="text-[13px] text-gray-600 mt-3">
+                  {baseModel.summary ||
+                    "Baseline model used as the experiment anchor."}
                 </p>
               </div>
-              {model.model_id === recommended?.model_id && (
-                <div
-                  className="bg-orange-100 text-orange-600 p-1.5 rounded-full"
-                  title="Recommended Model"
-                >
-                  <ShieldCheck className="w-4 h-4" />
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-3">
-              <ComparisonBar
-                label="Accuracy"
-                value={model.accuracy || 0}
-                color="bg-blue-500"
-              />
-              <ComparisonBar
-                label="Fairness Score"
-                value={model.fairness_score || 0}
-                color="bg-green-500"
-              />
-              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-50 text-center">
-                <div>
-                  <div className="text-[10px] text-gray-400">DPD</div>
-                  <div className="text-xs font-bold">
-                    {(model.dpd ?? 0).toFixed(3)}
+              <div className="flex flex-col items-end gap-2">
+                {baseModel.model_id === recommended?.model_id && (
+                  <div className="px-3 py-1 rounded bg-orange-100 text-orange-700 font-bold">
+                    Recommended
                   </div>
-                </div>
-                <div>
-                  <div className="text-[10px] text-gray-400">EOD</div>
-                  <div className="text-xs font-bold">
-                    {(model.eod ?? 0).toFixed(3)}
-                  </div>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-50 text-center">
-                <div>
-                  <div className="text-[10px] text-gray-400">Combined</div>
-                  <div className="text-xs font-bold">
-                    {(model.combined_score ?? 0).toFixed(3)}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-[10px] text-gray-400">Status</div>
-                  <div className="text-xs font-bold capitalize">
-                    {model.recommendation_status || "available"}
-                  </div>
-                </div>
-              </div>
-              <p className="text-[11px] text-gray-500 italic min-h-[34px]">
-                {model.summary ||
-                  (model.source_type === "original"
-                    ? "Baseline model used as the comparison anchor."
-                    : model.source_type === "mitigated"
-                      ? "Mitigated variant tuned for fairness tradeoffs."
-                      : "Optimized variant selected for the best combined score.")}
-              </p>
-            </div>
-
-            <div className="mt-4 pt-4 border-t border-gray-100 space-y-2">
-              <button
-                onClick={() => onDownload(model)}
-                className="w-full py-2 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 border border-gray-200 transition-colors"
-              >
-                <Download className="w-3.5 h-3.5" /> Download Model
-              </button>
-              {model.dataset_download_url && (
+                )}
                 <button
-                  onClick={() =>
-                    onDownload({
-                      ...model,
-                      download_url: model.dataset_download_url,
-                      artifact_name: model.artifact_name?.replace(
-                        /\.joblib$/i,
-                        ".csv",
-                      ),
-                    })
-                  }
-                  className="w-full py-2 bg-white hover:bg-gray-50 text-gray-700 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 border border-gray-200 transition-colors"
+                  onClick={() => onDownload(baseModel)}
+                  className="px-3 py-1 rounded bg-gray-50 hover:bg-gray-100 text-sm border"
                 >
-                  <Database className="w-3.5 h-3.5" /> Download Corrected
-                  Dataset
+                  Download Base
                 </button>
-              )}
+              </div>
             </div>
           </div>
-        ))}
+        )}
+
+        {/* Generated Experimental Variants grouped by mitigation strategy */}
+        <div className="border rounded-2xl p-4 bg-white">
+          <h4 className="font-bold text-gray-800 mb-3">
+            Generated Experimental Variants
+          </h4>
+          <div className="space-y-4">
+            {(byParent[baseModel?.model_id || "root"] || [])
+              .filter((m: any) => m.model_id !== baseModel?.model_id)
+              .sort(
+                (a: any, b: any) =>
+                  (b.combined_score || 0) - (a.combined_score || 0),
+              )
+              .map((variant: any) => (
+                <div key={variant.model_id} className="border rounded-xl p-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${modelBadge(variant.source_type)}`}
+                        >
+                          {variantLabel(variant)}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          {variant.mitigation_strategy ||
+                            variant.strategy ||
+                            variant.optimization_method ||
+                            variant.source_type}
+                        </span>
+                      </div>
+                      <h5 className="font-semibold text-gray-800 mt-2">
+                        {variant.model_name}
+                      </h5>
+                      <p className="text-sm text-gray-500 mt-1">
+                        {variant.summary ||
+                          "Experimental variant derived from base model."}
+                      </p>
+                      <div className="mt-3 flex gap-2 text-sm">
+                        <div className="bg-gray-50 px-2 py-1 rounded">
+                          Acc {(variant.accuracy || 0).toFixed(3)}
+                        </div>
+                        <div className="bg-gray-50 px-2 py-1 rounded">
+                          Fair {(variant.fairness_score || 0).toFixed(3)}
+                        </div>
+                        <div className="bg-gray-50 px-2 py-1 rounded">
+                          Comb {(variant.combined_score || 0).toFixed(3)}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col items-end gap-2">
+                      {variant.model_id === recommended?.model_id && (
+                        <div className="px-3 py-1 rounded bg-orange-100 text-orange-700 font-bold">
+                          🏆 Recommended
+                        </div>
+                      )}
+                      <div className="flex flex-col gap-2">
+                        <button
+                          onClick={() => onDownload(variant)}
+                          className="px-3 py-1 rounded bg-gray-50 hover:bg-gray-100 text-sm border"
+                        >
+                          Download Model
+                        </button>
+                        {variant.dataset_download_url && (
+                          <button
+                            onClick={() => {
+                              const u = variant.dataset_download_url.startsWith(
+                                "http",
+                              )
+                                ? variant.dataset_download_url
+                                : `http://localhost:8000${variant.dataset_download_url.startsWith("/") ? "" : "/"}${variant.dataset_download_url}`;
+                              window.open(u, "_blank");
+                            }}
+                            className="px-3 py-1 rounded bg-white border text-sm"
+                          >
+                            Download Dataset
+                          </button>
+                        )}
+                        <details className="mt-2 text-sm text-left text-gray-600">
+                          <summary className="cursor-pointer">
+                            View Technical Details
+                          </summary>
+                          <div className="mt-2 text-xs text-gray-500 space-y-1">
+                            <div>Artifact: {variant.artifact_name || "—"}</div>
+                            <div>Model ID: {variant.model_id}</div>
+                            <div>
+                              Parent:{" "}
+                              {variant.parent_model_id ||
+                                variant.parent_id ||
+                                baseModel?.model_id ||
+                                "—"}
+                            </div>
+                            <pre className="mt-2 p-2 bg-gray-100 rounded text-[11px] overflow-auto">
+                              {JSON.stringify(
+                                {
+                                  mitigation_strategy:
+                                    variant.mitigation_strategy,
+                                  optimization_method:
+                                    variant.optimization_method,
+                                  hyperparameters: variant.hyperparameters,
+                                },
+                                null,
+                                2,
+                              )}
+                            </pre>
+                          </div>
+                        </details>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Optimized children (if any) */}
+                  {byParent[variant.model_id] &&
+                    byParent[variant.model_id].length > 0 && (
+                      <div className="mt-4 pl-6 border-l border-gray-100">
+                        {byParent[variant.model_id].map((opt: any) => (
+                          <div
+                            key={opt.model_id}
+                            className="flex items-center justify-between py-2"
+                          >
+                            <div>
+                              <div className="text-sm font-medium">
+                                {opt.model_name}
+                              </div>
+                              <div className="text-xs text-gray-500">
+                                {opt.optimization_method || "Optimized Variant"}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <div className="text-sm font-semibold">
+                                Acc {(opt.accuracy || 0).toFixed(3)}
+                              </div>
+                              <div className="text-sm font-semibold">
+                                Fair {(opt.fairness_score || 0).toFixed(3)}
+                              </div>
+                              <button
+                                onClick={() => onDownload(opt)}
+                                className="px-2 py-1 bg-gray-50 rounded border text-xs"
+                              >
+                                Download
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                </div>
+              ))}
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -488,8 +675,233 @@ const ComparisonDashboard = ({
   );
 };
 
+const ReportPreviewModal = ({ report, onClose }: any) => {
+  if (!report) return null;
+
+  const apiBase = api.defaults.baseURL || window.location.origin;
+  const resolveUrl = (url: string) =>
+    url.startsWith("http")
+      ? url
+      : `${apiBase}${url.startsWith("/") ? "" : "/"}${url}`;
+
+  const payload = report.report_payload || {};
+  const chartData = payload.chart_data || {};
+  const labels = chartData.labels || [];
+  const models = payload.comparison_models || [];
+  const scatterPoints = chartData.scatter || [];
+
+  const barData = {
+    labels,
+    datasets: (chartData.datasets || []).map((dataset: any, index: number) => ({
+      label: dataset.label,
+      data: dataset.data,
+      backgroundColor: ["#2563EB", "#059669", "#7C3AED"][index] || "#EA580C",
+      borderRadius: 8,
+    })),
+  };
+
+  const scatterData = {
+    datasets: [
+      {
+        label: "Model trade-off",
+        data: scatterPoints.map((point: any) => ({ x: point.x, y: point.y })),
+        backgroundColor: scatterPoints.map((point: any) => {
+          if (point.source_type === "original") return "#6B7280";
+          if (point.source_type === "mitigated") return "#2563EB";
+          if (point.source_type === "optimized") return "#7C3AED";
+          return "#EA580C";
+        }),
+        pointRadius: 7,
+      },
+    ],
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 p-4 overflow-y-auto">
+      <div className="max-w-6xl mx-auto bg-white rounded-3xl shadow-2xl overflow-hidden my-8">
+        <div className="flex items-start justify-between gap-4 p-6 border-b border-gray-100">
+          <div>
+            <div className="text-xs uppercase tracking-[0.2em] text-orange-500 font-bold">
+              Fairness Report
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900 mt-1">
+              {report.title}
+            </h3>
+            <p className="text-sm text-gray-500 mt-2 max-w-3xl leading-relaxed">
+              {report.summary}
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 rounded-full hover:bg-gray-100 text-gray-500 hover:text-gray-700"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 p-6">
+          <div className="lg:col-span-2 space-y-6">
+            <div className="border rounded-2xl p-4 bg-gray-50">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="font-bold text-gray-800">Model Comparison</h4>
+                <span className="text-xs text-gray-500">Chart.js preview</span>
+              </div>
+              <div className="h-80">
+                <Bar
+                  data={barData}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                      legend: { position: "bottom" },
+                    },
+                    scales: {
+                      y: { beginAtZero: true, max: 1 },
+                    },
+                  }}
+                />
+              </div>
+            </div>
+
+            <div className="border rounded-2xl p-4 bg-gray-50">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="font-bold text-gray-800">
+                  Accuracy vs Fairness
+                </h4>
+                <span className="text-xs text-gray-500">Front-end preview</span>
+              </div>
+              <div className="h-80">
+                <Scatter
+                  data={scatterData}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                      legend: { display: false },
+                    },
+                    scales: {
+                      x: { beginAtZero: true, max: 1 },
+                      y: { beginAtZero: true, max: 1 },
+                    },
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-6">
+            <div className="border rounded-2xl p-4 bg-white">
+              <h4 className="font-bold text-gray-800 mb-3">Section Status</h4>
+              <div className="space-y-3 text-sm">
+                {Object.entries(report.section_flags || {}).map(
+                  ([key, enabled]) => (
+                    <div
+                      key={key}
+                      className="flex items-center justify-between gap-3"
+                    >
+                      <span className="capitalize text-gray-600">{key}</span>
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${enabled ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}
+                      >
+                        {enabled ? "Included" : "Skipped"}
+                      </span>
+                    </div>
+                  ),
+                )}
+              </div>
+            </div>
+
+            <div className="border rounded-2xl p-4 bg-white">
+              <h4 className="font-bold text-gray-800 mb-3">Interpretation</h4>
+              <p className="text-sm text-gray-600 leading-relaxed">
+                {payload.interpretation?.summary ||
+                  "No interpretation available."}
+              </p>
+              <div className="grid grid-cols-2 gap-3 mt-4 text-sm">
+                <div className="rounded-xl bg-gray-50 p-3">
+                  <div className="text-[11px] uppercase text-gray-500 font-bold">
+                    Accuracy Change
+                  </div>
+                  <div className="font-semibold text-gray-800 mt-1">
+                    {typeof payload.interpretation?.accuracy_change === "number"
+                      ? payload.interpretation.accuracy_change.toFixed(3)
+                      : "—"}
+                  </div>
+                </div>
+                <div className="rounded-xl bg-gray-50 p-3">
+                  <div className="text-[11px] uppercase text-gray-500 font-bold">
+                    Fairness Change
+                  </div>
+                  <div className="font-semibold text-gray-800 mt-1">
+                    {typeof payload.interpretation?.fairness_change === "number"
+                      ? payload.interpretation.fairness_change.toFixed(3)
+                      : "—"}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="border rounded-2xl p-4 bg-white">
+              <h4 className="font-bold text-gray-800 mb-3">Actions</h4>
+              <div className="space-y-3">
+                <button
+                  onClick={() =>
+                    window.open(resolveUrl(report.pdf_download_url), "_blank")
+                  }
+                  className="w-full py-2.5 rounded-xl bg-orange-500 text-white font-semibold hover:bg-orange-600 transition-colors"
+                >
+                  Download PDF
+                </button>
+                <button
+                  onClick={() =>
+                    window.open(resolveUrl(report.json_download_url), "_blank")
+                  }
+                  className="w-full py-2.5 rounded-xl border border-gray-300 text-gray-700 font-semibold hover:bg-gray-50 transition-colors"
+                >
+                  Download JSON
+                </button>
+              </div>
+            </div>
+
+            <div className="border rounded-2xl p-4 bg-gray-50">
+              <h4 className="font-bold text-gray-800 mb-3">Top Models</h4>
+              <div className="space-y-3 max-h-72 overflow-auto pr-1">
+                {models.map((model: any) => (
+                  <div
+                    key={model.model_id}
+                    className="bg-white rounded-xl p-3 border border-gray-100"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="font-semibold text-sm text-gray-800">
+                        {model.model_name}
+                      </div>
+                      <span className="text-[10px] uppercase tracking-wide text-gray-500">
+                        {model.source_type}
+                      </span>
+                    </div>
+                    <div className="text-xs text-gray-500 mt-2 grid grid-cols-3 gap-2">
+                      <span>Acc {Number(model.accuracy || 0).toFixed(3)}</span>
+                      <span>
+                        Fair {Number(model.fairness_score || 0).toFixed(3)}
+                      </span>
+                      <span>
+                        Comb {Number(model.combined_score || 0).toFixed(3)}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const DownloadModal = ({ model, onConfirm, onClose }: any) => {
   if (!model) return null;
+  const [downloadFormat, setDownloadFormat] = useState<"joblib" | "pkl">("pkl");
 
   const summary = {
     model_type: model.model_type || "Fairness-Aware Classifier",
@@ -573,6 +985,30 @@ const DownloadModal = ({ model, onConfirm, onClose }: any) => {
               production use.
             </p>
           </div>
+
+          <div className="p-4 border border-gray-200 bg-white rounded-xl">
+            <h5 className="text-[10px] font-bold text-gray-700 uppercase tracking-widest mb-2">
+              Download Format
+            </h5>
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <button
+                onClick={() => setDownloadFormat("joblib")}
+                className={`px-3 py-2 rounded border font-semibold ${downloadFormat === "joblib" ? "bg-orange-50 border-orange-300 text-orange-700" : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"}`}
+              >
+                joblib
+              </button>
+              <button
+                onClick={() => setDownloadFormat("pkl")}
+                className={`px-3 py-2 rounded border font-semibold ${downloadFormat === "pkl" ? "bg-orange-50 border-orange-300 text-orange-700" : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"}`}
+              >
+                pkl
+              </button>
+            </div>
+            <p className="text-[10px] text-gray-500 mt-2">
+              Both options download the same serialized model with the chosen
+              extension.
+            </p>
+          </div>
         </div>
 
         <div className="p-6 bg-gray-50 rounded-b-2xl flex gap-3">
@@ -584,7 +1020,7 @@ const DownloadModal = ({ model, onConfirm, onClose }: any) => {
           </button>
           <button
             onClick={() => {
-              onConfirm(model.model_id, model.download_url);
+              onConfirm(model, downloadFormat);
               onClose();
             }}
             className="flex-1 py-2.5 bg-orange-500 text-white rounded-xl font-bold hover:bg-orange-600 transition-colors flex items-center justify-center gap-2 shadow-sm"
@@ -791,6 +1227,8 @@ export default function BiasBuster() {
   const [optimizationResults, setOptimizationResults] = useState<any>(null);
   const [comparisonData, setComparisonData] = useState<any>(null);
   const [downloadModelMetadata, setDownloadModelMetadata] = useState<any>(null);
+  const [generatedReport, setGeneratedReport] = useState<any>(null);
+  const [reportBusy, setReportBusy] = useState(false);
 
   const fetchComparison = async () => {
     if (!uploadId) return;
@@ -804,6 +1242,26 @@ export default function BiasBuster() {
     } catch (err: any) {
       setProcessingStep(null);
       alert(err?.response?.data?.detail || "Failed to fetch comparison data");
+    }
+  };
+
+  const generateComparisonReport = async () => {
+    const reportUploadId = comparisonData?.upload_id || uploadId;
+    if (!reportUploadId) {
+      alert("Upload data is required before generating a report.");
+      return;
+    }
+
+    try {
+      setReportBusy(true);
+      const res = await api.post(`/api/report/generate`, {
+        upload_id: reportUploadId,
+      });
+      setGeneratedReport(res.data);
+    } catch (err: any) {
+      alert(err?.response?.data?.detail || "Failed to generate report");
+    } finally {
+      setReportBusy(false);
     }
   };
 
@@ -2084,9 +2542,12 @@ export default function BiasBuster() {
             <div className="flex gap-3">
               <button
                 onClick={() => {
+                  const mitigationDownloadUrl =
+                    mitigationResults.download_endpoints?.model ||
+                    `/api/bias/mitigate/download-model/${uploadId}?strategy=${mitigationResults.strategy_applied}`;
                   handleModelDownload({
-                    model_id: mitigationResults.correction_id,
-                    download_url: `http://localhost:8000/api/correction/download-model/${mitigationResults.correction_id}`,
+                    model_id: mitigationResults.mitigation_id,
+                    download_url: mitigationDownloadUrl,
                     model_type: "Mitigated Classifier",
                     accuracy:
                       mitigationResults.metrics_after?.performance?.accuracy ||
@@ -2107,10 +2568,13 @@ export default function BiasBuster() {
               ) && (
                 <button
                   onClick={() => {
-                    window.open(
-                      `http://localhost:8000/api/correction/download-dataset/${mitigationResults.correction_id}`,
-                      "_blank",
-                    );
+                    const datasetDownloadUrl =
+                      mitigationResults.download_endpoints?.dataset ||
+                      `/api/bias/mitigate/download-dataset/${uploadId}?strategy=${mitigationResults.strategy_applied}&mitigation_id=${mitigationResults.mitigation_id}`;
+                    const resolvedUrl = datasetDownloadUrl.startsWith("http")
+                      ? datasetDownloadUrl
+                      : `http://localhost:8000${datasetDownloadUrl.startsWith("/") ? "" : "/"}${datasetDownloadUrl}`;
+                    window.open(resolvedUrl, "_blank");
                   }}
                   className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-50 flex items-center gap-2 shadow-sm"
                 >
@@ -2238,17 +2702,6 @@ export default function BiasBuster() {
                 </div>
               </div>
             </div>
-
-            {optimizationResults.best_params && (
-              <div className="mt-6 p-4 bg-gray-900 rounded-lg shadow-sm">
-                <div className="font-bold text-gray-400 mb-2 text-xs uppercase tracking-widest flex items-center gap-2">
-                  <Settings className="w-4 h-4" /> Best Hyperparameters
-                </div>
-                <pre className="text-sm text-green-400 font-mono overflow-x-auto">
-                  {JSON.stringify(optimizationResults.best_params, null, 2)}
-                </pre>
-              </div>
-            )}
           </div>
 
           <div className="flex items-center justify-between pt-6">
@@ -2300,12 +2753,11 @@ export default function BiasBuster() {
       return (
         <ComparisonDashboard
           data={comparisonData}
-          onDownload={(id) => {
-            const model = comparisonData.models.find(
-              (m: any) => m.model_id === id,
-            );
+          reportBusy={reportBusy}
+          onDownload={(model) => {
             setDownloadModelMetadata(model);
           }}
+          onGenerateReport={generateComparisonReport}
         />
       );
     }
@@ -2315,18 +2767,25 @@ export default function BiasBuster() {
     setDownloadModelMetadata(model);
   };
 
-  const confirmDownload = (modelId: string, downloadUrl?: string) => {
-    if (downloadUrl) {
-      const resolvedUrl = downloadUrl.startsWith("http")
-        ? downloadUrl
-        : `http://localhost:8000${downloadUrl.startsWith("/") ? "" : "/"}${downloadUrl}`;
-      window.open(resolvedUrl, "_blank");
-    } else {
-      window.open(
-        `http://localhost:8000/api/models/download/${modelId}`,
-        "_blank",
-      );
+  const confirmDownload = (model: any, format: "joblib" | "pkl") => {
+    const baseUrl = "http://localhost:8000";
+    const toAbsoluteUrl = (url: string) =>
+      url.startsWith("http")
+        ? url
+        : `${baseUrl}${url.startsWith("/") ? "" : "/"}${url}`;
+
+    const sourceUrl = model?.download_url
+      ? toAbsoluteUrl(model.download_url)
+      : `${baseUrl}/api/models/download/${model?.model_id || ""}`;
+
+    if (!model?.download_url && !model?.model_id) {
+      alert("Download URL unavailable for this artifact.");
+      return;
     }
+
+    const separator = sourceUrl.includes("?") ? "&" : "?";
+    const finalUrl = `${sourceUrl}${separator}format=${format}`;
+    window.open(finalUrl, "_blank");
   };
   return (
     <div className="flex h-screen bg-gray-50">
@@ -2336,6 +2795,12 @@ export default function BiasBuster() {
           model={downloadModelMetadata}
           onConfirm={confirmDownload}
           onClose={() => setDownloadModelMetadata(null)}
+        />
+      )}
+      {generatedReport && (
+        <ReportPreviewModal
+          report={generatedReport}
+          onClose={() => setGeneratedReport(null)}
         />
       )}
       {/* Left Sidebar */}

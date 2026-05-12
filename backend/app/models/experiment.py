@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, JSON, Float, ForeignKey
+from sqlalchemy import Column, Integer, String, DateTime, JSON, Float, ForeignKey, Text
 from sqlalchemy.sql import func
 from app.db import Base
 
@@ -52,4 +52,24 @@ class ExperimentRun(Base):
     status = Column(String, default="completed")  # completed, failed, in_progress
     error_message = Column(String, nullable=True)
 
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class FairnessExperimentReport(Base):
+    """Persisted downloadable report generated from fairness experiments."""
+
+    __tablename__ = "fairness_experiment_reports"
+
+    id = Column(Integer, primary_key=True, index=True)
+    report_id = Column(String, unique=True, index=True, nullable=False)
+    upload_id = Column(
+        Integer, ForeignKey("upload_records.id"), nullable=False, index=True
+    )
+    experiment_id = Column(String, nullable=True, index=True)
+    title = Column(String, nullable=False)
+    section_flags = Column(JSON, nullable=False)
+    report_payload = Column(JSON, nullable=False)
+    pdf_path = Column(String, nullable=False)
+    json_path = Column(String, nullable=False)
+    summary = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
