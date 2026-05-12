@@ -117,6 +117,8 @@ async def run_data_correction_wizard(
             sensitive_columns=sensitive_cols,
             y_predictions=y_pred,
             y_true=y_true,
+            original_dataset_name=record.original_dataset_filename,
+            original_model_name=record.original_model_filename,
         )
 
         result = wizard.correct(strategy=payload.strategy)

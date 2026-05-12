@@ -25,6 +25,9 @@ from app.utils.model_validation import (
 from app.utils.bias_decision import evaluate_bias
 from app.utils.mitigation.strategy_recommender import recommend_strategy
 from app.utils.fairness.evaluation_engine import evaluate_model_fairness, compute_fairness_metrics
+from app.schemas.model_registry import RegisterModelRequest
+from app.services.model_registry_service import ModelRegistryService
+import os
 
 from app.utils.fairness_metrics import (
     selection_rate,
@@ -152,12 +155,72 @@ async def run_strategy_recommendation(payload, session: AsyncSession):
         }
     )
 
-    return {
-        "status": "success",
-        "computed_metrics": prepared["computed_metrics"],
-        "dataset_analysis": prepared["dataset_analysis"],
-        "recommendation": recommendation,
-    }
+    from app.services.bias_mitigation_service import run_mitigation_ranking
+    from app.schemas.bias_mitigation import MitigationRankingRequest
+    import math
+
+    ranking_payload = MitigationRankingRequest(
+        upload_id=payload.upload_id,
+        target_column=payload.target_column,
+        sensitive_columns=payload.sensitive_columns,
+    )
+    ranking_results = await run_mitigation_ranking(ranking_payload, session)
+
+    if ranking_results.get("status") == "success" and ranking_results.get("ranked_strategies"):
+        ranked_strategies = ranking_results["ranked_strategies"]
+        best_tradeoff = ranked_strategies[0]
+        fairness_best = max(ranked_strategies, key=lambda x: x["fairness_improvement"])
+        accuracy_best = min(ranked_strategies, key=lambda x: x["accuracy_drop"])
+
+        heuristic_strategy = recommendation.get("recommended_strategy", "none")
+        base_confidence = recommendation.get("confidence_score", 50)
+        
+        is_consistent = heuristic_strategy == best_tradeoff["strategy"]
+        consistency_bonus = 20 if is_consistent else -10
+        
+        confidence_score = min(99, max(1, base_confidence + consistency_bonus + (best_tradeoff["combined_score"] * 30)))
+        
+        final_reasoning = f"Simulated mitigation validated {best_tradeoff['strategy']} as the optimal approach, " \
+                          f"achieving a fairness score improvement of {best_tradeoff['fairness_improvement']:.2%} " \
+                          f"with only a {best_tradeoff['accuracy_drop']:.2%} accuracy tradeoff."
+                          
+        if not is_consistent and heuristic_strategy != "none":
+            final_reasoning = f"While initial heuristics suggested {heuristic_strategy}, " \
+                              f"empirical simulation ranked {best_tradeoff['strategy']} higher due to better performance retention."
+
+        dpd_reduction = best_tradeoff["metrics_before"]["fairness"]["aggregate"]["dpd"] - best_tradeoff["metrics_after"]["fairness"]["aggregate"]["dpd"]
+        eod_reduction = best_tradeoff["metrics_before"]["fairness"]["aggregate"]["eod"] - best_tradeoff["metrics_after"]["fairness"]["aggregate"]["eod"]
+
+        return {
+            "status": "success",
+            "computed_metrics": prepared["computed_metrics"],
+            "dataset_analysis": prepared["dataset_analysis"],
+            "recommendation": {
+                "recommended_strategy": best_tradeoff["strategy"],
+                "confidence_score": math.floor(confidence_score),
+                "recommendation_reasoning": final_reasoning,
+                "strategy_rankings": ranked_strategies,
+                "validated_improvements": {
+                    "dpd_reduction": round(max(0, dpd_reduction), 4),
+                    "eod_reduction": round(max(0, eod_reduction), 4),
+                    "accuracy_tradeoff": round(best_tradeoff["accuracy_drop"], 4)
+                },
+                "best_tradeoff_strategy": best_tradeoff["strategy"],
+                "fairness_best_strategy": fairness_best["strategy"],
+                "accuracy_best_strategy": accuracy_best["strategy"],
+                "overall_best_strategy": best_tradeoff["strategy"],
+                "strategy_comparison_matrix": ranked_strategies,
+                "recommendation_consistency_score": consistency_bonus + 50,
+                "explanation_summary": recommendation.get("explanation", ""),
+            }
+        }
+    else:
+        return {
+            "status": "success",
+            "computed_metrics": prepared["computed_metrics"],
+            "dataset_analysis": prepared["dataset_analysis"],
+            "recommendation": recommendation,
+        }
 
 
 async def run_bias_detection(
@@ -256,7 +319,32 @@ async def run_bias_detection(
             bias_driver = sensitive
 
     # -------------------------------------------------
-    # STEP 8: Final response
+    # STEP 9: Auto-register original model in registry
+    # -------------------------------------------------
+    try:
+        existing_models = await ModelRegistryService.get_models_by_upload(payload.upload_id, session)
+        if not any(m.source_type == "original" for m in existing_models):
+            # Register original model
+            metrics_aggregate = eval_result["fairness"]["aggregate"]
+            registry_payload = RegisterModelRequest(
+                upload_id=payload.upload_id,
+                model_name=f"original_model_{record.model_type}",
+                model_type=record.model_type,
+                source_type="original",
+                artifact_path=str(Path(settings.ARTIFACT_DIR) / "uploads" / "models" / record.model_filename),
+                artifact_size_bytes=os.path.getsize(str(Path(settings.ARTIFACT_DIR) / "uploads" / "models" / record.model_filename)),
+                performance_metrics=eval_result["performance"],
+                fairness_metrics=metrics_aggregate,
+                combined_score=(0.6 * metrics_aggregate.get("fairness_score", 0.5)) + (0.4 * eval_result["performance"].get("accuracy", 0.5)),
+                version="v1_original",
+                tags={"auto_registered": "true"}
+            )
+            await ModelRegistryService.register_model(registry_payload, session)
+    except Exception as e:
+        print(f"Failed to auto-register original model: {e}")
+
+    # -------------------------------------------------
+    # STEP 10: Final response
     # -------------------------------------------------
     return {
         "status": "success",

@@ -3,8 +3,10 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
 from app.db import get_session
+from app.models.models import UploadRecord
 from app.schemas.model_registry import (
     RegisterModelRequest,
     RegisterModelResponse,
@@ -15,7 +17,10 @@ from app.schemas.model_registry import (
     ModelDownloadResponse,
 )
 from app.services.model_registry_service import ModelRegistryService
+from app.utils.artifact_naming import cleanup_download_filename
+from app.config import settings
 import os
+from pathlib import Path
 
 router = APIRouter(prefix="/api/models", tags=["Model Registry"])
 
@@ -291,9 +296,44 @@ async def download_model(
             detail=f"Artifact file not found: {artifact_path}",
         )
 
+    download_name = cleanup_download_filename(os.path.basename(artifact_path))
+    if model.source_type == "original":
+        upload = (
+            await session.execute(
+                select(UploadRecord).where(UploadRecord.id == model.upload_id)
+            )
+        ).scalar_one_or_none()
+        if upload and upload.original_model_filename:
+            download_name = cleanup_download_filename(upload.original_model_filename)
+
     return FileResponse(
         path=artifact_path,
-        filename=f"{model.model_id}.joblib",
+        filename=download_name,
+        media_type="application/octet-stream",
+    )
+
+
+@router.get("/download-original/{upload_id}")
+async def download_original_model(
+    upload_id: int,
+    session: AsyncSession = Depends(get_session),
+):
+    """Download the original uploaded model artifact."""
+    record = (
+        await session.execute(select(UploadRecord).where(UploadRecord.id == upload_id))
+    ).scalar_one_or_none()
+
+    if not record:
+        raise HTTPException(status_code=404, detail="Upload record not found")
+
+    model_path = Path(settings.TEMP_DIR) / "models" / record.model_filename
+    if not model_path.is_file():
+        raise HTTPException(status_code=404, detail="Original model file not found")
+
+    filename = record.original_model_filename or model_path.name
+    return FileResponse(
+        path=model_path,
+        filename=cleanup_download_filename(filename),
         media_type="application/octet-stream",
     )
 

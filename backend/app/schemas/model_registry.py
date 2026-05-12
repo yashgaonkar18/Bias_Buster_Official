@@ -81,6 +81,7 @@ class ModelComparisonItem(BaseModel):
 
     model_id: str
     model_name: str
+    model_type: str
     source_type: str
     version: str
 
@@ -90,6 +91,14 @@ class ModelComparisonItem(BaseModel):
 
     dpd: Optional[float] = None
     eod: Optional[float] = None
+    dir: Optional[float] = None
+
+    bias_severity: Optional[str] = None
+    recommendation_status: Optional[str] = None
+    download_url: Optional[str] = None
+    dataset_download_url: Optional[str] = None
+    artifact_name: Optional[str] = None
+    summary: Optional[str] = None
 
     is_recommended: bool
 
@@ -110,6 +119,8 @@ class ModelComparisonResponse(BaseModel):
     best_production_model: Optional[str] = None
 
     summary: str
+    experiment_summary: Optional[str] = None
+    optimization_status: Optional[str] = None
 
 
 class TradeoffAnalysis(BaseModel):

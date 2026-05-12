@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db import get_session
 from app.schemas.optimization import OptimizationRequest, OptimizationResponse
 from app.services.optimization_service import run_model_optimization
+from app.utils.artifact_naming import cleanup_download_filename
 
 router = APIRouter(prefix="/api", tags=["Optimization"])
 
@@ -97,10 +98,12 @@ async def optimize_model(
             detail=f"Optimization failed: {str(e)}",
         )
 
+
 from fastapi.responses import FileResponse
 from sqlalchemy import select
 from app.models.models import OptimizationRun
 import os
+
 
 @router.get("/optimize/download/{optimization_id}")
 async def download_optimized_model(
@@ -110,7 +113,9 @@ async def download_optimized_model(
     """Download an optimized model."""
     record = (
         await session.execute(
-            select(OptimizationRun).where(OptimizationRun.optimization_id == optimization_id)
+            select(OptimizationRun).where(
+                OptimizationRun.optimization_id == optimization_id
+            )
         )
     ).scalar_one_or_none()
 
@@ -123,5 +128,5 @@ async def download_optimized_model(
     return FileResponse(
         path=record.artifact_path,
         media_type="application/octet-stream",
-        filename=f"optimized_model_{optimization_id}.joblib",
+        filename=cleanup_download_filename(os.path.basename(record.artifact_path)),
     )

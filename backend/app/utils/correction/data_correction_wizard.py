@@ -18,6 +18,7 @@ from app.utils.fairness.metrics import (
 )
 from app.services.mitigation_orchestrator import MitigationOrchestrator
 from app.utils.fairness import evaluation_engine
+from app.utils.artifact_naming import build_artifact_filename
 
 import logging
 
@@ -90,6 +91,8 @@ class DataCorrectionWizard:
         sensitive_columns: list,
         y_predictions: np.ndarray,
         y_true: np.ndarray,
+        original_dataset_name: str = "dataset.csv",
+        original_model_name: str = "model.joblib",
     ):
         """
         Initialize correction wizard.
@@ -101,6 +104,8 @@ class DataCorrectionWizard:
             sensitive_columns: List of sensitive attribute columns
             y_predictions: Model predictions
             y_true: True labels
+            original_dataset_name: Original user filename for dataset
+            original_model_name: Original user filename for model
         """
         self.dataset = dataset.copy()
         self.model = model
@@ -108,6 +113,8 @@ class DataCorrectionWizard:
         self.sensitive_columns = sensitive_columns
         self.y_predictions = y_predictions
         self.y_true = y_true
+        self.original_dataset_name = original_dataset_name
+        self.original_model_name = original_model_name
 
         # Create correction directories
         self._ensure_directories()
@@ -510,7 +517,14 @@ class DataCorrectionWizard:
         export_dir = Path(settings.TEMP_DIR) / "corrected"
         export_dir.mkdir(parents=True, exist_ok=True)
 
-        export_path = export_dir / f"{correction_id}_{strategy}_dataset.csv"
+        export_filename = build_artifact_filename(
+            self.original_dataset_name,
+            strategy,
+            "corrected_dataset",
+            suffix=".csv",
+        )
+
+        export_path = export_dir / export_filename
         dataset.to_csv(export_path, index=False)
 
         return export_path
@@ -520,7 +534,14 @@ class DataCorrectionWizard:
         export_dir = Path(settings.TEMP_DIR) / "models"
         export_dir.mkdir(parents=True, exist_ok=True)
 
-        export_path = export_dir / f"{correction_id}_{strategy}_model.joblib"
+        export_filename = build_artifact_filename(
+            self.original_model_name,
+            strategy,
+            "mitigated_model",
+            suffix=".joblib",
+        )
+
+        export_path = export_dir / export_filename
         joblib.dump(model, export_path)
 
         return export_path

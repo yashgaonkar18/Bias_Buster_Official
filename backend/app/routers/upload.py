@@ -46,7 +46,9 @@ async def upload_files(
     # FIXED HERE ↓ store Boolean, no str() wrapping
     record = UploadRecord(
         dataset_filename = ds_path.name,
+        original_dataset_filename = dataset_file.filename,
         model_filename = md_path.name,
+        original_model_filename = model_file.filename,
         dataset_rows = int(df.shape[0]),
         dataset_columns = int(df.shape[1]),
         dataset_columns_list = df.columns.astype(str).tolist(),
@@ -59,6 +61,7 @@ async def upload_files(
     await session.refresh(record)
 
     success = {
+        "upload_id": record.id,
         "status": "success",
         "dataset_info": {
             "rows": df.shape[0],

@@ -2,7 +2,12 @@
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_
-from app.models.models import ModelRegistry, UploadRecord
+from app.models.models import (
+    ModelRegistry,
+    UploadRecord,
+    CorrectionRecord,
+    OptimizationRun,
+)
 from app.schemas.model_registry import (
     RegisterModelRequest,
     ModelRegistryEntry,
@@ -13,6 +18,7 @@ from app.schemas.model_registry import (
     ModelLineageNode,
     TradeoffAnalysis,
 )
+from app.utils.artifact_naming import cleanup_download_filename
 import uuid
 import os
 from typing import List, Dict, Any, Optional
@@ -139,78 +145,252 @@ class ModelRegistryService:
         """Compare all models for an upload and provide insights."""
         models = await ModelRegistryService.get_models_by_upload(upload_id, session)
 
-        if not models:
-            return None
-
-        # Build comparison items
-        comparison_items: List[ModelComparisonItem] = []
-        accuracy_scores = []
-        fairness_scores = []
-        combined_scores = []
-
-        best_accuracy_model = None
-        best_fairness_model = None
-        best_balanced_model = None
-        best_production_model = None
-
-        for model in models:
-            accuracy = model.performance_metrics.get("accuracy", 0)
-            fairness = model.fairness_metrics.get("fairness_score", 0)
-
-            accuracy_scores.append(accuracy)
-            fairness_scores.append(fairness)
-            combined_scores.append(model.combined_score)
-
-            item = ModelComparisonItem(
-                model_id=model.model_id,
-                model_name=model.model_name,
-                source_type=model.source_type,
-                version=model.version,
-                accuracy=accuracy,
-                fairness_score=fairness,
-                combined_score=model.combined_score,
-                dpd=model.fairness_metrics.get("dpd"),
-                eod=model.fairness_metrics.get("eod"),
-                is_recommended=(model.recommended_for is not None),
+        upload = (
+            await session.execute(
+                select(UploadRecord).where(UploadRecord.id == upload_id)
             )
+        ).scalar_one_or_none()
+
+        corrections = (
+            (
+                await session.execute(
+                    select(CorrectionRecord)
+                    .where(CorrectionRecord.upload_id == upload_id)
+                    .order_by(CorrectionRecord.created_at.desc())
+                )
+            )
+            .scalars()
+            .all()
+        )
+
+        optimizations = (
+            (
+                await session.execute(
+                    select(OptimizationRun)
+                    .where(OptimizationRun.upload_id == upload_id)
+                    .order_by(OptimizationRun.created_at.desc())
+                )
+            )
+            .scalars()
+            .all()
+        )
+
+        comparison_items: List[ModelComparisonItem] = []
+        seen_keys: set[str] = set()
+
+        def add_item(item: ModelComparisonItem, key: str) -> None:
+            if key in seen_keys:
+                return
+            seen_keys.add(key)
             comparison_items.append(item)
 
-            # Track best models
-            if (
-                best_accuracy_model is None
-                or accuracy > best_accuracy_model["accuracy"]
-            ):
-                best_accuracy_model = {
-                    "model_id": model.model_id,
-                    "accuracy": accuracy,
-                }
-            if (
-                best_fairness_model is None
-                or fairness > best_fairness_model["fairness"]
-            ):
-                best_fairness_model = {"model_id": model.model_id, "fairness": fairness}
+        for model in models:
+            add_item(
+                ModelComparisonItem(
+                    model_id=model.model_id,
+                    model_name=model.model_name,
+                    model_type=model.model_type,
+                    source_type=model.source_type,
+                    version=model.version,
+                    accuracy=model.performance_metrics.get("accuracy", 0),
+                    fairness_score=model.fairness_metrics.get("fairness_score", 0),
+                    combined_score=model.combined_score,
+                    dpd=model.fairness_metrics.get("dpd"),
+                    eod=model.fairness_metrics.get("eod"),
+                    dir=model.fairness_metrics.get("dir"),
+                    bias_severity=ModelRegistryService._bias_severity_label(
+                        model.fairness_metrics.get("dpd"),
+                        model.fairness_metrics.get("eod"),
+                        model.fairness_metrics.get("fairness_score", 0),
+                    ),
+                    recommendation_status=model.recommended_for,
+                    download_url=f"/api/models/download/{model.model_id}",
+                    artifact_name=cleanup_download_filename(
+                        os.path.basename(model.artifact_path)
+                    ),
+                    summary=model.recommendation_reason or None,
+                    is_recommended=(model.recommended_for is not None),
+                ),
+                key=f"registry:{model.model_id}",
+            )
 
-            if (
-                best_balanced_model is None
-                or model.combined_score > best_balanced_model["score"]
-            ):
-                best_balanced_model = {
-                    "model_id": model.model_id,
-                    "score": model.combined_score,
-                }
+        if upload and not any(
+            item.source_type == "original" for item in comparison_items
+        ):
+            original_metrics: Optional[Dict[str, Any]] = None
+            original_model_name = (
+                upload.original_model_filename or upload.model_filename
+            )
+            original_model_type = upload.model_type or "Model"
 
-            # Production best = retrained or stable optimized
-            if model.source_type in ["retrained", "corrected"]:
-                if (
-                    best_production_model is None
-                    or model.combined_score > best_production_model["score"]
-                ):
-                    best_production_model = {
-                        "model_id": model.model_id,
-                        "score": model.combined_score,
-                    }
+            if corrections:
+                original_metrics = corrections[0].metrics_before or {}
+            elif optimizations:
+                original_metrics = optimizations[0].metrics_before or {}
 
-        # Statistics
+            if original_metrics:
+                original_accuracy = original_metrics.get("accuracy", 0)
+                original_fairness = original_metrics.get("fairness_score", 0)
+                original_dpd = original_metrics.get("dpd")
+                original_eod = original_metrics.get("eod")
+                add_item(
+                    ModelComparisonItem(
+                        model_id=f"upload-{upload_id}-original",
+                        model_name=original_model_name or "Original Model",
+                        model_type=original_model_type,
+                        source_type="original",
+                        version="v1_original",
+                        accuracy=original_accuracy,
+                        fairness_score=original_fairness,
+                        combined_score=(0.6 * original_fairness)
+                        + (0.4 * original_accuracy),
+                        dpd=original_dpd,
+                        eod=original_eod,
+                        dir=original_metrics.get("dir"),
+                        bias_severity=ModelRegistryService._bias_severity_label(
+                            original_dpd,
+                            original_eod,
+                            original_fairness,
+                        ),
+                        recommendation_status="baseline",
+                        download_url=f"/api/models/download-original/{upload_id}",
+                        artifact_name=original_model_name,
+                        summary="Baseline original upload used for comparison.",
+                        is_recommended=False,
+                    ),
+                    key="synthetic:original",
+                )
+
+        for correction in corrections:
+            metrics_after = correction.metrics_after or {}
+            model_name = f"{(upload.original_model_filename or upload.model_filename or 'model.joblib').rsplit('.', 1)[0]}_{correction.strategy}_mitigated_model"
+            combined_score = (0.6 * metrics_after.get("fairness_score", 0)) + (
+                0.4 * metrics_after.get("accuracy", 0)
+            )
+            add_item(
+                ModelComparisonItem(
+                    model_id=correction.correction_id,
+                    model_name=model_name,
+                    model_type=upload.model_type if upload else "Model",
+                    source_type="mitigated",
+                    version=f"v1_{correction.strategy}",
+                    accuracy=metrics_after.get("accuracy", 0),
+                    fairness_score=metrics_after.get("fairness_score", 0),
+                    combined_score=combined_score,
+                    dpd=metrics_after.get("dpd"),
+                    eod=metrics_after.get("eod"),
+                    dir=metrics_after.get("dir"),
+                    bias_severity=ModelRegistryService._bias_severity_label(
+                        metrics_after.get("dpd"),
+                        metrics_after.get("eod"),
+                        metrics_after.get("fairness_score", 0),
+                    ),
+                    recommendation_status=(
+                        "recommended"
+                        if correction.status == "success"
+                        else correction.status
+                    ),
+                    download_url=f"/api/correction/download-model/{correction.correction_id}",
+                    dataset_download_url=(
+                        f"/api/correction/download-dataset/{correction.correction_id}"
+                        if correction.dataset_export_path
+                        and correction.strategy in ["reweighting", "smote"]
+                        else None
+                    ),
+                    artifact_name=(
+                        cleanup_download_filename(
+                            correction.model_export_path.split("/")[-1]
+                        )
+                        if correction.model_export_path
+                        else None
+                    ),
+                    summary=correction.summary,
+                    is_recommended=False,
+                ),
+                key=f"correction:{correction.correction_id}",
+            )
+
+        for optimization in optimizations:
+            metrics_after = optimization.metrics_after or {}
+            model_name = f"{(upload.original_model_filename or upload.model_filename or 'model.joblib').rsplit('.', 1)[0]}_{optimization.optimization_method}_optimized_model"
+            combined_score = (0.6 * metrics_after.get("fairness_score", 0)) + (
+                0.4 * metrics_after.get("accuracy", 0)
+            )
+            add_item(
+                ModelComparisonItem(
+                    model_id=optimization.optimization_id,
+                    model_name=model_name,
+                    model_type=upload.model_type if upload else "Model",
+                    source_type="optimized",
+                    version=f"v1_{optimization.optimization_method}",
+                    accuracy=metrics_after.get("accuracy", 0),
+                    fairness_score=metrics_after.get("fairness_score", 0),
+                    combined_score=combined_score,
+                    dpd=metrics_after.get("dpd"),
+                    eod=metrics_after.get("eod"),
+                    dir=metrics_after.get("dir"),
+                    bias_severity=ModelRegistryService._bias_severity_label(
+                        metrics_after.get("dpd"),
+                        metrics_after.get("eod"),
+                        metrics_after.get("fairness_score", 0),
+                    ),
+                    recommendation_status=(
+                        "recommended"
+                        if optimization.status == "success"
+                        else optimization.status
+                    ),
+                    download_url=(
+                        f"/api/optimize/download/{optimization.optimization_id}"
+                        if optimization.artifact_path
+                        else None
+                    ),
+                    dataset_download_url=None,
+                    artifact_name=(
+                        cleanup_download_filename(
+                            optimization.artifact_path.split("/")[-1]
+                        )
+                        if optimization.artifact_path
+                        else None
+                    ),
+                    summary=optimization.error_message
+                    or f"Optimization method: {optimization.optimization_method}",
+                    is_recommended=False,
+                ),
+                key=f"optimization:{optimization.optimization_id}",
+            )
+
+        if not comparison_items:
+            return None
+
+        comparison_items.sort(key=lambda item: item.combined_score, reverse=True)
+
+        accuracy_scores = [item.accuracy for item in comparison_items]
+        fairness_scores = [item.fairness_score for item in comparison_items]
+        combined_scores = [item.combined_score for item in comparison_items]
+
+        best_accuracy_model = max(comparison_items, key=lambda item: item.accuracy)
+        best_fairness_model = max(
+            comparison_items, key=lambda item: item.fairness_score
+        )
+        best_balanced_model = max(
+            comparison_items, key=lambda item: item.combined_score
+        )
+
+        production_candidates = [
+            item
+            for item in comparison_items
+            if item.source_type in ["retrained", "corrected", "optimized"]
+        ]
+        best_production_model = max(
+            production_candidates if production_candidates else comparison_items,
+            key=lambda item: item.combined_score,
+        )
+
+        for item in comparison_items:
+            if item.model_id == best_balanced_model.model_id:
+                item.is_recommended = True
+                item.recommendation_status = "recommended"
+
         statistics = {
             "accuracy": {
                 "min": min(accuracy_scores) if accuracy_scores else 0,
@@ -239,31 +419,35 @@ class ModelRegistryService:
                     else 0
                 ),
             },
-            "total_models": len(models),
+            "total_models": len(comparison_items),
         }
 
-        # Generate summary
         summary = ModelRegistryService._generate_comparison_summary(
-            models, best_balanced_model
+            comparison_items, best_balanced_model
         )
 
+        experiment_summary = ModelRegistryService._generate_experiment_summary(
+            comparison_items, best_balanced_model
+        )
+
+        optimization_status = (
+            "Optimization completed"
+            if any(item.source_type == "optimized" for item in comparison_items)
+            else "Optimization not performed"
+        )
+
+        # Statistics
         return ModelComparisonResponse(
             upload_id=upload_id,
             models=comparison_items,
             statistics=statistics,
-            best_accuracy_model=(
-                best_accuracy_model["model_id"] if best_accuracy_model else None
-            ),
-            best_fairness_model=(
-                best_fairness_model["model_id"] if best_fairness_model else None
-            ),
-            best_balanced_model=(
-                best_balanced_model["model_id"] if best_balanced_model else None
-            ),
-            best_production_model=(
-                best_production_model["model_id"] if best_production_model else None
-            ),
+            best_accuracy_model=best_accuracy_model.model_id,
+            best_fairness_model=best_fairness_model.model_id,
+            best_balanced_model=best_balanced_model.model_id,
+            best_production_model=best_production_model.model_id,
             summary=summary,
+            experiment_summary=experiment_summary,
+            optimization_status=optimization_status,
         )
 
     @staticmethod
@@ -524,7 +708,7 @@ class ModelRegistryService:
 
     @staticmethod
     def _generate_comparison_summary(
-        models: List[ModelRegistryEntry],
+        models: List[ModelComparisonItem],
         best_balanced_model: Optional[Dict[str, Any]],
     ) -> str:
         """Generate human-readable summary of model comparison."""
@@ -535,15 +719,15 @@ class ModelRegistryService:
             model = models[0]
             return (
                 f"Single {model.source_type} model with accuracy "
-                f"{model.performance_metrics['accuracy']:.2%} and fairness "
-                f"{model.fairness_metrics['fairness_score']:.2%}."
+                f"{model.accuracy:.2%} and fairness "
+                f"{model.fairness_score:.2%}."
             )
 
         varied_types = len(set(m.source_type for m in models)) > 1
         if varied_types:
             return (
                 f"Registry contains {len(models)} models across multiple transformation types. "
-                f"Best balanced model ({best_balanced_model.get('model_id', 'N/A')}) "
+                f"Best balanced model ({getattr(best_balanced_model, 'model_id', 'N/A')}) "
                 f"achieved the optimal accuracy-fairness tradeoff."
             )
         else:
@@ -551,8 +735,54 @@ class ModelRegistryService:
             return (
                 f"{len(models)} {source} model variants. "
                 f"Best variant achieves combined score "
-                f"{best_balanced_model.get('score', 0):.4f}."
+                f"{getattr(best_balanced_model, 'combined_score', 0):.4f}."
             )
+
+    @staticmethod
+    def _generate_experiment_summary(
+        models: List[ModelComparisonItem],
+        best_balanced_model: ModelComparisonItem,
+    ) -> str:
+        """Generate a concise experiment-style summary."""
+        original = next((m for m in models if m.source_type == "original"), None)
+        mitigated = next((m for m in models if m.source_type == "mitigated"), None)
+        optimized = next((m for m in models if m.source_type == "optimized"), None)
+
+        if original and mitigated and optimized:
+            fairness_delta = (optimized.fairness_score - original.fairness_score) * 100
+            accuracy_delta = (optimized.accuracy - original.accuracy) * 100
+            return (
+                f"Mitigation lowered bias from the original model, and optimization refined the tradeoff. "
+                f"The recommended model improved fairness by {fairness_delta:.1f} points while changing accuracy by {accuracy_delta:+.1f} points."
+            )
+
+        if original and mitigated:
+            fairness_delta = (mitigated.fairness_score - original.fairness_score) * 100
+            accuracy_delta = (mitigated.accuracy - original.accuracy) * 100
+            return f"Mitigation reduced demographic disparity by {abs(fairness_delta):.1f} points and changed accuracy by {accuracy_delta:+.1f} points."
+
+        if original and optimized:
+            fairness_delta = (optimized.fairness_score - original.fairness_score) * 100
+            accuracy_delta = (optimized.accuracy - original.accuracy) * 100
+            return f"Optimization preserved fairness with a {fairness_delta:+.1f} point shift while accuracy changed by {accuracy_delta:+.1f} points."
+
+        return f"Recommended model: {best_balanced_model.model_name} with combined score {best_balanced_model.combined_score:.4f}."
+
+    @staticmethod
+    def _bias_severity_label(
+        dpd: Optional[float],
+        eod: Optional[float],
+        fairness_score: float,
+    ) -> str:
+        """Classify overall bias severity for display."""
+        dpd_value = abs(dpd or 0)
+        eod_value = abs(eod or 0)
+
+        if dpd_value >= 0.2 or eod_value >= 0.2 or fairness_score < 0.6:
+            return "High"
+        if dpd_value >= 0.1 or eod_value >= 0.1 or fairness_score < 0.8:
+            return "Medium"
+        return "Low"
 
     @staticmethod
     async def _build_lineage_tree(

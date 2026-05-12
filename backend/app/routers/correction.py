@@ -16,6 +16,7 @@ from app.services.correction_service import run_data_correction_wizard
 from app.schemas.model_registry import RegisterModelRequest
 from app.services.model_registry_service import ModelRegistryService
 from app.config import settings
+from app.utils.artifact_naming import cleanup_download_filename
 
 router = APIRouter(prefix="/api/correction", tags=["Data Correction"])
 
@@ -173,7 +174,7 @@ async def download_corrected_dataset(
         return FileResponse(
             path=dataset_path,
             media_type="text/csv",
-            filename=f"{correction_id}_dataset.csv",
+            filename=cleanup_download_filename(dataset_path.name),
         )
 
     except HTTPException:
@@ -221,7 +222,7 @@ async def download_corrected_model(
         return FileResponse(
             path=model_path,
             media_type="application/octet-stream",
-            filename=f"{correction_id}_model.joblib",
+            filename=cleanup_download_filename(model_path.name),
         )
 
     except HTTPException:

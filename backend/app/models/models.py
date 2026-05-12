@@ -8,7 +8,9 @@ class UploadRecord(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     dataset_filename = Column(String, nullable=False)
+    original_dataset_filename = Column(String, nullable=True)
     model_filename = Column(String, nullable=False)
+    original_model_filename = Column(String, nullable=True)
     dataset_rows = Column(Integer)
     dataset_columns = Column(Integer)
     dataset_columns_list = Column(JSON)

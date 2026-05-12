@@ -29,6 +29,7 @@ from app.models.models import OptimizationRun
 from app.utils.fairness.evaluation_engine import evaluate_model_fairness
 from app.schemas.model_registry import RegisterModelRequest
 from app.services.model_registry_service import ModelRegistryService
+from app.utils.artifact_naming import build_artifact_filename
 from sklearn.base import clone
 
 
@@ -302,9 +303,20 @@ async def run_model_optimization(
 
         if optimized_combined > baseline_combined:
             os.makedirs("artifacts/optimized_models", exist_ok=True)
-            artifact_path = (
-                f"artifacts/optimized_models/optimized_{optimization_id}.joblib"
+
+            original_model_name = (
+                record.original_model_filename
+                or record.model_filename
+                or "model.joblib"
             )
+            export_filename = build_artifact_filename(
+                original_model_name,
+                payload.method,
+                "optimized_model",
+                suffix=".joblib",
+            )
+
+            artifact_path = f"artifacts/optimized_models/{export_filename}"
             joblib.dump(optimized_model, artifact_path)
             optimized_model_available = True
             download_endpoint = f"/api/optimize/download/{optimization_id}"
@@ -334,17 +346,12 @@ async def run_model_optimization(
         # Auto-register optimized model in ModelRegistry
         if artifact_path and optimized_model_available:
             model_class_name = get_model_class_name(optimized_model)
-            version_num = (
-                len(
-                    await session.execute(
-                        select(OptimizationRun).where(
-                            OptimizationRun.upload_id == payload.upload_id
-                        )
-                    )
+            result_runs = await session.execute(
+                select(OptimizationRun).where(
+                    OptimizationRun.upload_id == payload.upload_id
                 )
-                .scalars()
-                .all()
             )
+            version_num = len(result_runs.scalars().all())
 
             registry_payload = RegisterModelRequest(
                 upload_id=payload.upload_id,
