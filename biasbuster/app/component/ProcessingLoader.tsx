@@ -1,29 +1,141 @@
 "use client";
 import React from "react";
 
-export default function ProcessingLoader({ step }: { step: string }) {
+export default function ProcessingLoader({
+  step,
+  phase,
+}: {
+  step: string;
+  phase: string;
+}) {
+  const phaseConfig = {
+    VALIDATE: {
+      title: "Validation Pipeline",
+      description:
+        "BiasBuster is validating uploaded assets and preparing the fairness analysis pipeline.",
+      steps: [
+        "Dataset Validation",
+        "Model Verification",
+        "Schema Analysis",
+        "Pipeline Initialization",
+      ],
+    },
+    DETECT: {
+      title: "Bias Detection Engine",
+      description:
+        "BiasBuster is analyzing sensitive attributes, calculating fairness metrics, and detecting demographic bias patterns.",
+      steps: [
+        "Fairness Metric Analysis",
+        "Sensitive Attribute Audit",
+        "Bias Pattern Detection",
+        "Generating Fairness Report",
+      ],
+    },
+    MITIGATE: {
+      title: "Bias Mitigation Engine",
+      description:
+        "BiasBuster is applying mitigation strategies and optimizing fairness across demographic groups.",
+      steps: [
+        "Mitigation Strategy Setup",
+        "Bias Reduction Processing",
+        "Fairness Optimization",
+        "Generating Mitigated Model",
+      ],
+    },
+    OPTIMIZE: {
+      title: "Fairness Optimization Engine",
+      description:
+        "BiasBuster is fine-tuning hyperparameters to find the optimal balance between accuracy and fairness.",
+      steps: [
+        "Hyperparameter Search",
+        "Metric Trade-off Analysis",
+        "Model Performance Tuning",
+        "Finalizing Optimized Variant",
+      ],
+    },
+    COMPARE: {
+      title: "Model Comparison Dashboard",
+      description:
+        "BiasBuster is aggregating results across all experiment runs for side-by-side evaluation.",
+      steps: [
+        "Registry Data Fetching",
+        "Insight Generation",
+        "Report Preparation",
+        "Dashboard Visualization",
+      ],
+    },
+  };
+
+  const current =
+    phaseConfig[phase as keyof typeof phaseConfig] || phaseConfig.VALIDATE;
+
   return (
-    <div className="mb-6 p-6 border rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
-      <div className="flex items-center gap-4">
+    <div className="min-h-[600px] flex items-center justify-center">
+      <div className="w-full max-w-2xl">
+        <div className="rounded-3xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+          {/* Top Accent */}
+          <div className="h-1 w-full bg-gradient-to-r from-orange-500 via-red-500 to-orange-400" />
 
-        <div className="relative">
-          <div className="h-10 w-10 rounded-full border-4 border-blue-200"></div>
-          <div className="absolute top-0 left-0 h-10 w-10 rounded-full border-4 border-blue-500 border-t-transparent animate-spin"></div>
-        </div>
+          <div className="p-10">
+            {/* Header */}
+            <div className="flex items-start gap-5">
+              {/* Loader */}
+              <div className="relative flex-shrink-0">
+                <div className="w-14 h-14 rounded-2xl border-4 border-orange-100"></div>
+                <div className="absolute inset-0 rounded-2xl border-4 border-orange-500 border-t-transparent animate-spin"></div>
+              </div>
 
-        <div>
-          <div className="text-sm font-semibold text-blue-800">
-            Processing Request
+              {/* Text */}
+              <div className="flex-1">
+                <h2 className="text-2xl font-bold text-gray-900">
+                  {current.title}
+                </h2>
+                <p className="mt-2 text-sm text-gray-500 leading-relaxed">
+                  {current.description}
+                </p>
+
+                <div className="mt-5 inline-flex items-center gap-2 rounded-full bg-orange-50 border border-orange-100 px-4 py-2">
+                  <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></div>
+                  <span className="text-sm font-medium text-orange-700">
+                    {step}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Progress */}
+            <div className="mt-10">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Progress
+                </span>
+                <span className="text-xs font-semibold text-gray-700">
+                  Processing
+                </span>
+              </div>
+              <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
+                <div className="h-full w-2/3 bg-gradient-to-r from-orange-500 to-red-500 rounded-full animate-pulse"></div>
+              </div>
+            </div>
+
+            {/* Steps */}
+            <div className="mt-10 grid grid-cols-2 gap-4">
+              {current.steps.map((item, idx) => (
+                <div
+                  key={idx}
+                  className="rounded-2xl border border-gray-100 bg-gray-50 px-4 py-4"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-2 h-2 rounded-full bg-orange-500"></div>
+                    <span className="text-sm font-medium text-gray-700">
+                      {item}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
-
-          <div className="text-xs text-blue-600 mt-1">
-            {step}
-          </div>
         </div>
-      </div>
-
-      <div className="mt-4 w-full bg-blue-100 rounded-full h-2 overflow-hidden">
-        <div className="h-full bg-blue-500 animate-pulse w-2/3"></div>
       </div>
     </div>
   );
