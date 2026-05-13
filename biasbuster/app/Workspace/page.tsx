@@ -36,6 +36,7 @@ import {
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { getMetricInterpretation } from "@/utils/fairnessInterpretation";
+import ProcessingLoader from "@/app/component/ProcessingLoader";
 
 ChartJS.register(
   CategoryScale,
@@ -54,33 +55,7 @@ const InfoRow = ({ label, value }: { label: string; value?: any }) => (
   </div>
 );
 
-const ProcessingLoader = ({ step }: { step: string }) => {
-  return (
-    <div className="mb-6 p-6 border rounded-lg bg-linear-to-r from-blue-50 to-indigo-50 border-blue-200">
-      <div className="flex items-center gap-4">
-        {/* Animated Spinner */}
-        <div className="relative">
-          <div className="h-10 w-10 rounded-full border-4 border-blue-200"></div>
-          <div className="absolute top-0 left-0 h-10 w-10 rounded-full border-4 border-blue-500 border-t-transparent animate-spin"></div>
-        </div>
 
-        {/* Text */}
-        <div>
-          <div className="text-sm font-semibold text-blue-800">
-            Processing Request
-          </div>
-
-          <div className="text-xs text-blue-600 mt-1">{step}</div>
-        </div>
-      </div>
-
-      {/* Progress Animation */}
-      <div className="mt-4 w-full bg-blue-100 rounded-full h-2 overflow-hidden">
-        <div className="h-full bg-blue-500 animate-pulse w-2/3"></div>
-      </div>
-    </div>
-  );
-};
 
 const MetricRow = ({ name, value, baselineValue }: any) => {
   const interpretation = getMetricInterpretation(name, value, baselineValue);
@@ -3112,11 +3087,14 @@ export default function BiasBuster() {
           </div>
 
           <div className="p-6 bg-white">
-            {(uploading || processingStep) && (
-              <ProcessingLoader step={processingStep || "Processing..."} />
+            {(uploading || processingStep) ? (
+              <ProcessingLoader
+                step={processingStep || "Processing..."}
+                phase={requestMethod}
+              />
+            ) : (
+              renderRequestBody()
             )}
-
-            {renderRequestBody()}
           </div>
 
           {showResponse && (
