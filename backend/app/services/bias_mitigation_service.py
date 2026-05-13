@@ -41,6 +41,9 @@ from app.utils.sensitive_preprocessing import bin_age_column
 from sklearn.pipeline import Pipeline
 from fairlearn.postprocessing import ThresholdOptimizer
 
+from app.schemas.model_registry import RegisterModelRequest
+from app.services.model_registry_service import ModelRegistryService
+
 logger = logging.getLogger(__name__)
 
 # ------------------------------------------------------------------
@@ -622,6 +625,39 @@ async def run_bias_mitigation(payload, session):
             )
         )
         await session.commit()
+
+        # Auto-register mitigated model in ModelRegistry
+        try:
+            model_class_name = type(model_mitigated).__name__
+            if isinstance(model_mitigated, ThresholdOptimizer):
+                model_class_name = "ThresholdOptimizer"
+                
+            combined_score = (0.6 * after_eval["fairness"]["aggregate"].get("fairness_score", 0.5)) + (
+                0.4 * after_eval["performance"].get("accuracy", 0.5)
+            )
+
+            registry_payload = RegisterModelRequest(
+                upload_id=payload.upload_id,
+                model_name=f"{model_class_name}_mitigated_{strategy_name}",
+                model_type=model_class_name,
+                source_type="mitigated",
+                parent_model_id=None,
+                mitigation_strategy=strategy_name,
+                artifact_path=artifact_model_path,
+                artifact_size_bytes=os.path.getsize(artifact_model_path) if os.path.isfile(artifact_model_path) else None,
+                performance_metrics=after_eval["performance"],
+                fairness_metrics=after_eval["fairness"]["aggregate"],
+                operational_metrics={
+                    "model_size_bytes": os.path.getsize(artifact_model_path) if os.path.isfile(artifact_model_path) else None,
+                },
+                combined_score=combined_score,
+                version=f"v1_mitigated_{strategy_name}",
+                experiment_id=trace_id,
+            )
+
+            await ModelRegistryService.register_model(registry_payload, session)
+        except Exception as e:
+            logger.error("Failed to auto-register mitigated model: %s", str(e))
 
         # ============================================
         # STEP 10: Return comprehensive report

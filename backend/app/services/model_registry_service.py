@@ -229,10 +229,21 @@ class ModelRegistryService:
                 original_metrics = optimizations[0].metrics_before or {}
 
             if original_metrics:
-                original_accuracy = original_metrics.get("accuracy", 0)
-                original_fairness = original_metrics.get("fairness_score", 0)
-                original_dpd = original_metrics.get("dpd")
-                original_eod = original_metrics.get("eod")
+                # Handle nested structure from evaluate_model_fairness (e.g., in optimizations)
+                if "performance" in original_metrics and "fairness" in original_metrics:
+                    original_accuracy = original_metrics["performance"].get("accuracy", 0)
+                    original_fairness = original_metrics["fairness"]["aggregate"].get("fairness_score", 0)
+                    original_dpd = original_metrics["fairness"]["aggregate"].get("dpd")
+                    original_eod = original_metrics["fairness"]["aggregate"].get("eod")
+                    original_dir = original_metrics["fairness"]["aggregate"].get("dir")
+                else:
+                    # Legacy flat structure (e.g., some old corrections)
+                    original_accuracy = original_metrics.get("accuracy", 0)
+                    original_fairness = original_metrics.get("fairness_score", 0)
+                    original_dpd = original_metrics.get("dpd")
+                    original_eod = original_metrics.get("eod")
+                    original_dir = original_metrics.get("dir")
+
                 add_item(
                     ModelComparisonItem(
                         model_id=f"upload-{upload_id}-original",
@@ -246,7 +257,7 @@ class ModelRegistryService:
                         + (0.4 * original_accuracy),
                         dpd=original_dpd,
                         eod=original_eod,
-                        dir=original_metrics.get("dir"),
+                        dir=original_dir,
                         bias_severity=ModelRegistryService._bias_severity_label(
                             original_dpd,
                             original_eod,
@@ -262,11 +273,23 @@ class ModelRegistryService:
                 )
 
         for correction in corrections:
-            metrics_after = correction.metrics_after or {}
+            raw_metrics_after = correction.metrics_after or {}
+            if "performance" in raw_metrics_after and "fairness" in raw_metrics_after:
+                corr_accuracy = raw_metrics_after["performance"].get("accuracy", 0)
+                corr_fairness = raw_metrics_after["fairness"]["aggregate"].get("fairness_score", 0)
+                corr_dpd = raw_metrics_after["fairness"]["aggregate"].get("dpd")
+                corr_eod = raw_metrics_after["fairness"]["aggregate"].get("eod")
+                corr_dir = raw_metrics_after["fairness"]["aggregate"].get("dir")
+            else:
+                corr_accuracy = raw_metrics_after.get("accuracy", 0)
+                corr_fairness = raw_metrics_after.get("fairness_score", 0)
+                corr_dpd = raw_metrics_after.get("dpd")
+                corr_eod = raw_metrics_after.get("eod")
+                corr_dir = raw_metrics_after.get("dir")
+
             model_name = f"{(upload.original_model_filename or upload.model_filename or 'model.joblib').rsplit('.', 1)[0]}_{correction.strategy}_mitigated_model"
-            combined_score = (0.6 * metrics_after.get("fairness_score", 0)) + (
-                0.4 * metrics_after.get("accuracy", 0)
-            )
+            combined_score = (0.6 * corr_fairness) + (0.4 * corr_accuracy)
+            
             add_item(
                 ModelComparisonItem(
                     model_id=correction.correction_id,
@@ -274,16 +297,16 @@ class ModelRegistryService:
                     model_type=upload.model_type if upload else "Model",
                     source_type="mitigated",
                     version=f"v1_{correction.strategy}",
-                    accuracy=metrics_after.get("accuracy", 0),
-                    fairness_score=metrics_after.get("fairness_score", 0),
+                    accuracy=corr_accuracy,
+                    fairness_score=corr_fairness,
                     combined_score=combined_score,
-                    dpd=metrics_after.get("dpd"),
-                    eod=metrics_after.get("eod"),
-                    dir=metrics_after.get("dir"),
+                    dpd=corr_dpd,
+                    eod=corr_eod,
+                    dir=corr_dir,
                     bias_severity=ModelRegistryService._bias_severity_label(
-                        metrics_after.get("dpd"),
-                        metrics_after.get("eod"),
-                        metrics_after.get("fairness_score", 0),
+                        corr_dpd,
+                        corr_eod,
+                        corr_fairness,
                     ),
                     recommendation_status=(
                         "recommended"
@@ -311,11 +334,23 @@ class ModelRegistryService:
             )
 
         for optimization in optimizations:
-            metrics_after = optimization.metrics_after or {}
+            raw_metrics_after = optimization.metrics_after or {}
+            if "performance" in raw_metrics_after and "fairness" in raw_metrics_after:
+                opt_accuracy = raw_metrics_after["performance"].get("accuracy", 0)
+                opt_fairness = raw_metrics_after["fairness"]["aggregate"].get("fairness_score", 0)
+                opt_dpd = raw_metrics_after["fairness"]["aggregate"].get("dpd")
+                opt_eod = raw_metrics_after["fairness"]["aggregate"].get("eod")
+                opt_dir = raw_metrics_after["fairness"]["aggregate"].get("dir")
+            else:
+                opt_accuracy = raw_metrics_after.get("accuracy", 0)
+                opt_fairness = raw_metrics_after.get("fairness_score", 0)
+                opt_dpd = raw_metrics_after.get("dpd")
+                opt_eod = raw_metrics_after.get("eod")
+                opt_dir = raw_metrics_after.get("dir")
+
             model_name = f"{(upload.original_model_filename or upload.model_filename or 'model.joblib').rsplit('.', 1)[0]}_{optimization.optimization_method}_optimized_model"
-            combined_score = (0.6 * metrics_after.get("fairness_score", 0)) + (
-                0.4 * metrics_after.get("accuracy", 0)
-            )
+            combined_score = (0.6 * opt_fairness) + (0.4 * opt_accuracy)
+
             add_item(
                 ModelComparisonItem(
                     model_id=optimization.optimization_id,
@@ -323,16 +358,16 @@ class ModelRegistryService:
                     model_type=upload.model_type if upload else "Model",
                     source_type="optimized",
                     version=f"v1_{optimization.optimization_method}",
-                    accuracy=metrics_after.get("accuracy", 0),
-                    fairness_score=metrics_after.get("fairness_score", 0),
+                    accuracy=opt_accuracy,
+                    fairness_score=opt_fairness,
                     combined_score=combined_score,
-                    dpd=metrics_after.get("dpd"),
-                    eod=metrics_after.get("eod"),
-                    dir=metrics_after.get("dir"),
+                    dpd=opt_dpd,
+                    eod=opt_eod,
+                    dir=opt_dir,
                     bias_severity=ModelRegistryService._bias_severity_label(
-                        metrics_after.get("dpd"),
-                        metrics_after.get("eod"),
-                        metrics_after.get("fairness_score", 0),
+                        opt_dpd,
+                        opt_eod,
+                        opt_fairness,
                     ),
                     recommendation_status=(
                         "recommended"

@@ -337,7 +337,7 @@ async def run_bias_detection(
                 fairness_metrics=metrics_aggregate,
                 combined_score=(0.6 * metrics_aggregate.get("fairness_score", 0.5)) + (0.4 * eval_result["performance"].get("accuracy", 0.5)),
                 version="v1_original",
-                tags={"auto_registered": "true"}
+                tags=["auto_registered"]
             )
             await ModelRegistryService.register_model(registry_payload, session)
     except Exception as e:

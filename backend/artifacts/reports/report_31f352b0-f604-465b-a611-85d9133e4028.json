@@ -1,0 +1,91 @@
+{
+    "report_id": "31f352b0-f604-465b-a611-85d9133e4028",
+    "upload_id": 43,
+    "generated_at": "1778560043.6110106",
+    "summary": "Registry contains 7 models across multiple transformation types. Best balanced model (8e82b44f-37f1-4a8c-9f21-ae35a85b2adf) achieved the optimal accuracy-fairness tradeoff.",
+    "models_analyzed": 7,
+    "best_balanced_model": "8e82b44f-37f1-4a8c-9f21-ae35a85b2adf",
+    "metrics": {
+        "accuracy": {
+            "min": 0.8105728676139389,
+            "max": 0.8537529175709431,
+            "avg": 0.8428957513147349
+        },
+        "fairness_score": {
+            "min": 0.7587234916137646,
+            "max": 0.9557676857553592,
+            "avg": 0.8718461232600252
+        },
+        "combined_score": {
+            "min": 0.7794632420138343,
+            "max": 0.9084100402235361,
+            "avg": 0.8601411543504237
+        },
+        "total_models": 7
+    },
+    "detailed_comparison": [
+        {
+            "name": "ThresholdOptimizer_mitigated_threshold",
+            "type": "ThresholdOptimizer",
+            "accuracy": 0.8373735719258015,
+            "fairness_score": 0.9557676857553592,
+            "combined_score": 0.9084100402235361,
+            "dpd": 0.08690594565066068,
+            "eod": 0.0015586828386209284
+        },
+        {
+            "name": "ThresholdOptimizer_mitigated_threshold",
+            "type": "ThresholdOptimizer",
+            "accuracy": 0.83835633266451,
+            "fairness_score": 0.954795156132913,
+            "combined_score": 0.9082196267455518,
+            "dpd": 0.08863116945808037,
+            "eod": 0.0017785182760935436
+        },
+        {
+            "name": "Pipeline_mitigated_reweighting",
+            "type": "Pipeline",
+            "accuracy": 0.8537529175709431,
+            "fairness_score": 0.8611422183515407,
+            "combined_score": 0.8581864980393017,
+            "dpd": 0.17941275899012762,
+            "eod": 0.09830280430679106
+        },
+        {
+            "name": "adult_income_pipeline_optuna_optimized_model",
+            "type": "LogisticRegression",
+            "accuracy": 0.8534458048400967,
+            "fairness_score": 0.8578145094420867,
+            "combined_score": 0.8560670276012907,
+            "dpd": 0.18021361200055688,
+            "eod": 0.10415736911526974
+        },
+        {
+            "name": "adult_income_pipeline.pkl",
+            "type": "LogisticRegression",
+            "accuracy": 0.8533229597477581,
+            "fairness_score": 0.8568652920824252,
+            "combined_score": 0.8554483591485584,
+            "dpd": 0.1801533625589405,
+            "eod": 0.1061160532762091
+        },
+        {
+            "name": "LogisticRegression_optimized_optuna",
+            "type": "LogisticRegression",
+            "accuracy": 0.8534458048400967,
+            "fairness_score": 0.8578145094420867,
+            "combined_score": 0.8551932866808927,
+            "dpd": 0.18021361200055688,
+            "eod": 0.10415736911526974
+        },
+        {
+            "name": "Pipeline_mitigated_smote",
+            "type": "Pipeline",
+            "accuracy": 0.8105728676139389,
+            "fairness_score": 0.7587234916137646,
+            "combined_score": 0.7794632420138343,
+            "dpd": 0.3267624191176025,
+            "eod": 0.15579059765486836
+        }
+    ]
+}

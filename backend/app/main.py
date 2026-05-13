@@ -12,6 +12,7 @@ from .routers.experiments import router as experiments_router
 from .routers.explainability import router as explainability_router
 from .routers.retraining import router as retraining_router
 from .routers.model_registry import router as model_registry_router
+from .routers.report import router as report_router
 
 
 @asynccontextmanager
@@ -43,6 +44,7 @@ app.include_router(experiments_router)
 app.include_router(explainability_router)
 app.include_router(retraining_router)
 app.include_router(model_registry_router)
+app.include_router(report_router)
 
 
 @app.get("/health")
