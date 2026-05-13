@@ -87,32 +87,35 @@ export const interpretBiasSeverity = (
 
 
   if (metric === "DIR" || metric === "DI") {
-    const distanceFromIdeal = Math.abs(value - 1);
-
-    if (distanceFromIdeal <= 0.05) {
+    // Interpret DIR using absolute value ranges (not distance-from-1):
+    // < 0.5 -> Severe disparity
+    // 0.5 - 0.8 -> Moderate disparity
+    // 0.8 - 1.25 -> Fair
+    // > 1.25 -> Reverse disparity
+    if (value < 0.5) {
       return {
-        label: "Fair",
-        color: "text-green-600",
+        label: "High Bias",
+        color: "text-red-600",
         tooltip:
-          "Fair: DIR is close to 1, so favorable selection rates are balanced.",
+          "Severe disparity: DIR < 0.5 indicates strong adverse impact against the protected group.",
       };
     }
 
-    if (distanceFromIdeal <= 0.2) {
-      return {
-        label: "Low Bias",
-        color: "text-yellow-600",
-        tooltip:
-          "Low Bias: DIR is moving toward 1, but some imbalance remains.",
-      };
-    }
-
-    if (distanceFromIdeal <= 0.45) {
+    if (value < 0.8) {
       return {
         label: "Moderate Bias",
         color: "text-orange-500",
         tooltip:
-          "Moderate Bias: DIR is still far from 1, so selection rates remain uneven.",
+          "Moderate disparity: DIR between 0.5 and 0.8 indicates notable adverse impact.",
+      };
+    }
+
+    if (value <= 1.25) {
+      return {
+        label: "Fair",
+        color: "text-green-600",
+        tooltip:
+          "Fair: DIR between 0.8 and 1.25 indicates acceptable balance between groups.",
       };
     }
 
@@ -120,7 +123,7 @@ export const interpretBiasSeverity = (
       label: "High Bias",
       color: "text-red-600",
       tooltip:
-        "High Bias: DIR is far from 1, so selection rates are highly imbalanced.",
+        "Reverse disparity: DIR > 1.25 indicates the imbalance is reversed (protected group favored).",
     };
   }
 

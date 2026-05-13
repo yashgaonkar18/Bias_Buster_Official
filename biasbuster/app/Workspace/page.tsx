@@ -1444,6 +1444,8 @@ export default function BiasBuster() {
   }, [attributesSelected, currentPhase]);
 
   const renderRequestBody = () => {
+    const showModelUpload = requestMethod === "VALIDATE";
+
     if (requestMethod === "MITIGATE" && !mitigationResults) {
       if (!recommendationResult) {
         return (
@@ -1918,48 +1920,51 @@ export default function BiasBuster() {
     }
 
     // Phase 1, 2, 3: Dataset and Model Analysis Configuration UI
-    if (activeRequestObj.type === "Dataset") {
+    if (activeRequestObj.type === "Dataset" && requestMethod === "VALIDATE") {
       return (
         <div className="max-w-5xl">
           <h3 className="text-lg font-bold text-gray-800 mb-4">
             Dataset and Model Configuration (Phase 1, 2, 3)
           </h3>
 
-          <div className="grid grid-cols-2 gap-6 mb-6">
-            {/* Model Upload (Phase 1) - UI-only validation */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-3">
-                Model Upload (Phase 1)
-              </label>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 hover:bg-blue-50 transition-all cursor-pointer h-full flex flex-col justify-center">
-                <Brain className="w-8 h-8 text-blue-400 mx-auto mb-2" />
-                <p className="text-sm font-medium text-gray-700 mb-1">
-                  Upload Trained ML Model
-                </p>
-                <p className="text-xs text-gray-500 mb-3">
-                  Supports .pkl,.joblib, .json, .ipynb
-                </p>
-                <input
-                  type="file"
-                  accept=".pkl,.joblib"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0] || null;
-                    setModelFile(file); // ✅ correct
-                    handleModelFile(file); // ✅ correct
-                  }}
-                />
-                {modelFile && (
-                  <div className="text-xs text-gray-600 mt-2">
-                    Selected: {modelFile.name}
-                  </div>
-                )}
+          <div
+            className={`grid gap-6 mb-6 ${showModelUpload ? "grid-cols-1 lg:grid-cols-2" : "grid-cols-1"}`}
+          >
+            {showModelUpload && (
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-3">
+                  Model Upload (Validation Only)
+                </label>
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 hover:bg-blue-50 transition-all cursor-pointer h-full flex flex-col justify-center">
+                  <Brain className="w-8 h-8 text-blue-400 mx-auto mb-2" />
+                  <p className="text-sm font-medium text-gray-700 mb-1">
+                    Upload Trained ML Model
+                  </p>
+                  <p className="text-xs text-gray-500 mb-3">
+                    Supports .pkl,.joblib, .json, .ipynb
+                  </p>
+                  <input
+                    type="file"
+                    accept=".pkl,.joblib"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0] || null;
+                      setModelFile(file); // ✅ correct
+                      handleModelFile(file); // ✅ correct
+                    }}
+                  />
+                  {modelFile && (
+                    <div className="text-xs text-gray-600 mt-2">
+                      Selected: {modelFile.name}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
 
-            {/* Dataset Upload (Phase 1) */}
+            {/* Dataset Upload (Validation Only) */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-3">
-                Dataset Upload (Phase 1)
+                Dataset Upload (Validation Only)
               </label>
               <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-orange-400 hover:bg-orange-50 transition-all cursor-pointer h-full flex flex-col justify-center">
                 <Upload className="w-8 h-8 text-orange-400 mx-auto mb-2" />
