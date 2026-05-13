@@ -11,6 +11,28 @@ from uuid import uuid4
 
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
+import io
+import tempfile
+from pathlib import Path as _Path
+
+# Try to import ReportLab; if unavailable we'll fall back to the existing matplotlib PDF layout.
+try:
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib import colors
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.platypus import (
+        SimpleDocTemplate,
+        Paragraph,
+        Spacer,
+        Table,
+        TableStyle,
+        Image as RLImage,
+        PageBreak,
+    )
+
+    REPORTLAB_AVAILABLE = True
+except Exception:
+    REPORTLAB_AVAILABLE = False
 from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -141,9 +163,249 @@ def _format_model_line(model: Dict[str, Any]) -> str:
     )
 
 
+def _render_pdf_reportlab(report_payload: Dict[str, Any], pdf_path: _Path) -> None:
+    """
+    Render a professional multi-page PDF using ReportLab, embedding matplotlib
+    charts as images. Keeps layout concise (2-4 pages) and adapts to available
+    sections and models.
+    """
+    doc = SimpleDocTemplate(
+        str(pdf_path),
+        pagesize=A4,
+        rightMargin=36,
+        leftMargin=36,
+        topMargin=36,
+        bottomMargin=36,
+    )
+    styles = getSampleStyleSheet()
+    normal = styles["Normal"]
+    heading = ParagraphStyle(
+        "Heading", parent=styles["Heading1"], fontSize=14, leading=16
+    )
+    small = ParagraphStyle("Small", parent=styles["BodyText"], fontSize=9, leading=11)
+
+    story = []
+
+    # Cover / Executive Summary
+    title = report_payload.get("title", "BiasBuster Fairness Audit Report")
+    overview = report_payload.get("overview", {})
+    generated_at = report_payload.get("generated_at", "")
+
+    story.append(
+        Paragraph(
+            title, ParagraphStyle("Title", fontSize=20, leading=24, spaceAfter=12)
+        )
+    )
+    meta = f"Generated: {generated_at} — Dataset: {overview.get('dataset_filename','-')} — Upload ID: {overview.get('upload_id','-')}"
+    story.append(Paragraph(meta, small))
+    story.append(Spacer(1, 12))
+
+    story.append(Paragraph("<b>Executive summary</b>", heading))
+    story.append(Spacer(1, 6))
+    story.append(Paragraph(report_payload.get("summary", ""), normal))
+    story.append(Spacer(1, 12))
+
+    # Summary cards (compact table)
+    km = overview.get("key_metrics", {})
+    card_rows = [["Metric", "Value"]]
+    card_rows += [
+        ["Accuracy", f"{_safe_round(km.get('accuracy',None),3)}"],
+        ["Fairness Score", f"{_safe_round(km.get('fairness_score',None),3)}"],
+        ["DPD", f"{_safe_round(km.get('dpd',None),3)}"],
+        ["EOD", f"{_safe_round(km.get('eod',None),3)}"],
+        ["DIR", f"{_safe_round(km.get('dir',None),3)}"],
+    ]
+
+    tbl = Table(card_rows, colWidths=[140, 100])
+    tbl.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#F3F4F6")),
+                ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#E5E7EB")),
+                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ]
+        )
+    )
+    story.append(tbl)
+    story.append(Spacer(1, 12))
+
+    # Charts: generate PNGs into temp dir, then embed
+    tmpdir = tempfile.mkdtemp()
+    try:
+        scatter_path = _Path(tmpdir) / f"tradeoff_{report_payload.get('report_id')}.png"
+        _save_tradeoff_chart(report_payload.get("chart_data", {}), str(scatter_path))
+        story.append(Paragraph("<b>Accuracy vs Fairness</b>", styles["Heading3"]))
+        story.append(Spacer(1, 6))
+        story.append(RLImage(str(scatter_path), width=450, height=240))
+        story.append(Spacer(1, 12))
+
+        bar_path = _Path(tmpdir) / f"before_after_{report_payload.get('report_id')}.png"
+        _save_before_after_chart(report_payload, str(bar_path))
+        story.append(
+            Paragraph("<b>Before vs After Fairness Metrics</b>", styles["Heading3"])
+        )
+        story.append(Spacer(1, 6))
+        story.append(RLImage(str(bar_path), width=450, height=200))
+        story.append(PageBreak())
+
+        # Page 2: dataset & sensitive attribute analysis + model comparison
+        story.append(
+            Paragraph("<b>Dataset Summary & Sensitive Attributes</b>", heading)
+        )
+        story.append(Spacer(1, 6))
+        ds_lines = [
+            f"Dataset: {overview.get('dataset_filename','-')}",
+            f"Model: {overview.get('model_filename','-')}",
+            f"Model Type: {overview.get('model_type','-')}",
+        ]
+        for ln in ds_lines:
+            story.append(Paragraph(ln, normal))
+        story.append(Spacer(1, 10))
+
+        story.append(Paragraph("<b>Model Comparison</b>", heading))
+        story.append(Spacer(1, 6))
+        rows = [["Model", "Accuracy", "Fairness", "DPD", "EOD", "DIR", "Combined"]]
+        for m in report_payload.get("comparison_models", []):
+            rows.append(
+                [
+                    m.get("model_name", m.get("model_id", "Model")),
+                    f"{_safe_round(m.get('accuracy',None),3)}",
+                    f"{_safe_round(m.get('fairness_score',None),3)}",
+                    f"{_safe_round(m.get('dpd',None),3)}",
+                    f"{_safe_round(m.get('eod',None),3)}",
+                    f"{_safe_round(m.get('dir',None),3)}",
+                    f"{_safe_round(m.get('combined_score',None),3)}",
+                ]
+            )
+
+        if len(rows) > 1:
+            cm_table = Table(
+                rows, repeatRows=1, colWidths=[120, 60, 60, 50, 50, 50, 60]
+            )
+            cm_table.setStyle(
+                TableStyle(
+                    [
+                        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#F3F4F6")),
+                        ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#E5E7EB")),
+                        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                    ]
+                )
+            )
+            story.append(cm_table)
+        else:
+            story.append(Paragraph("No comparison models available.", normal))
+
+        story.append(Spacer(1, 12))
+        story.append(Paragraph("<b>Recommendations</b>", heading))
+        story.append(Spacer(1, 6))
+        # Dynamic recommendation text
+        if report_payload.get("interpretation", {}).get("fairness_change", 0) > 0:
+            story.append(
+                Paragraph(
+                    "Fairness improved after mitigation. Consider validating and deploying the mitigated model.",
+                    normal,
+                )
+            )
+        else:
+            story.append(
+                Paragraph(
+                    "No substantial fairness improvement observed. Consider revising mitigation strategy or feature preprocessing.",
+                    normal,
+                )
+            )
+
+        story.append(PageBreak())
+        story.append(Paragraph("<b>Conclusion</b>", heading))
+        story.append(Spacer(1, 6))
+        story.append(Paragraph(report_payload.get("summary", ""), normal))
+
+        # Build the document
+        doc.build(story)
+    finally:
+        try:
+            import shutil
+
+            shutil.rmtree(tmpdir)
+        except Exception:
+            pass
+
+
+def _save_tradeoff_chart(chart_data: Dict[str, Any], out_path: str) -> None:
+    fig, ax = plt.subplots(figsize=(6, 3.2), dpi=150)
+    ax.set_title("Accuracy vs Fairness", fontsize=12)
+    ax.set_xlabel("Accuracy")
+    ax.set_ylabel("Fairness Score")
+    ax.grid(True, linestyle="--", alpha=0.25)
+    scatter = chart_data.get("scatter", [])
+    palette = {
+        "original": "#6B7280",
+        "mitigated": "#2563EB",
+        "optimized": "#7C3AED",
+        "retrained": "#059669",
+    }
+    for pt in scatter:
+        color = palette.get(pt.get("source_type"), "#EA580C")
+        ax.scatter(pt.get("x", 0.0), pt.get("y", 0.0), color=color, s=60)
+        ax.text(
+            pt.get("x", 0.0) + 0.002,
+            pt.get("y", 0.0) + 0.002,
+            pt.get("label", ""),
+            fontsize=7,
+        )
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, 1)
+    fig.tight_layout()
+    fig.savefig(out_path, bbox_inches="tight")
+    plt.close(fig)
+
+
+def _save_before_after_chart(report_payload: Dict[str, Any], out_path: str) -> None:
+    before = report_payload.get("overview", {}).get("key_metrics", {})
+    after_model = None
+    for m in report_payload.get("comparison_models", []):
+        if m.get("source_type") in ("mitigated", "optimized"):
+            after_model = m
+            break
+    after = after_model or {}
+    labels = ["DPD", "EOD", "DIR"]
+    before_vals = [
+        _normalize_metric(before.get("dpd")),
+        _normalize_metric(before.get("eod")),
+        _normalize_metric(before.get("dir")),
+    ]
+    after_vals = [
+        _normalize_metric(after.get("dpd")),
+        _normalize_metric(after.get("eod")),
+        _normalize_metric(after.get("dir")),
+    ]
+    x = range(len(labels))
+    width = 0.35
+    fig, ax = plt.subplots(figsize=(6, 3), dpi=150)
+    ax.bar(
+        [i - width / 2 for i in x], before_vals, width, label="Before", color="#6B7280"
+    )
+    ax.bar(
+        [i + width / 2 for i in x], after_vals, width, label="After", color="#2563EB"
+    )
+    ax.set_xticks(list(x))
+    ax.set_xticklabels(labels)
+    ax.set_ylabel("Value")
+    ax.set_title("Before vs After Fairness Metrics")
+    ax.legend()
+    fig.tight_layout()
+    fig.savefig(out_path, bbox_inches="tight")
+    plt.close(fig)
+
+
 def _render_pdf(report_payload: Dict[str, Any], pdf_path: Path) -> None:
     pdf_path.parent.mkdir(parents=True, exist_ok=True)
 
+    # If ReportLab is available, use it for a high-quality multi-page layout.
+    if REPORTLAB_AVAILABLE:
+        _render_pdf_reportlab(report_payload, pdf_path)
+        return
+
+    # Fallback: keep original matplotlib-based rendering for environments without ReportLab.
     with PdfPages(pdf_path) as pdf:
         fig = plt.figure(figsize=(8.27, 11.69))
         fig.patch.set_facecolor("white")
@@ -189,6 +451,7 @@ def _render_pdf(report_payload: Dict[str, Any], pdf_path: Path) -> None:
         pdf.savefig(fig, bbox_inches="tight")
         plt.close(fig)
 
+        # Keep the previous matplotlib tradeoff chart for fallback
         tradeoff = report_payload.get("chart_data", {}).get("scatter", [])
         fig, ax = plt.subplots(figsize=(8.27, 11.69))
         fig.patch.set_facecolor("white")
@@ -229,56 +492,6 @@ def _render_pdf(report_payload: Dict[str, Any], pdf_path: Path) -> None:
                 va="center",
                 transform=ax.transAxes,
             )
-
-        pdf.savefig(fig, bbox_inches="tight")
-        plt.close(fig)
-
-        fig = plt.figure(figsize=(8.27, 11.69))
-        fig.patch.set_facecolor("white")
-        ax = fig.add_axes([0, 0, 1, 1])
-        ax.axis("off")
-        ax.text(
-            0.06,
-            0.96,
-            "Model Ranking and Interpretation",
-            fontsize=16,
-            fontweight="bold",
-            va="top",
-        )
-
-        interpretation = report_payload.get("interpretation", {})
-        interpretation_lines = textwrap.wrap(
-            interpretation.get("summary", ""), width=90
-        )
-        y = 0.91
-        for line in interpretation_lines:
-            ax.text(0.06, y, line, fontsize=10, va="top")
-            y -= 0.024
-
-        y -= 0.02
-        for model in report_payload.get("comparison_models", []):
-            wrapped = textwrap.wrap(_format_model_line(model), width=90)
-            for line in wrapped:
-                ax.text(0.06, y, line, fontsize=9.3, va="top")
-                y -= 0.022
-            y -= 0.01
-            if y < 0.08:
-                break
-
-        if report_payload.get("section_flags", {}).get("experiments"):
-            y -= 0.02
-            ax.text(
-                0.06, y, "Latest Experiment", fontsize=12, fontweight="bold", va="top"
-            )
-            y -= 0.03
-            experiment = report_payload.get("experiments", {}).get("latest")
-            if experiment:
-                experiment_lines = textwrap.wrap(
-                    experiment.get("insights", ""), width=90
-                )
-                for line in experiment_lines[:8]:
-                    ax.text(0.06, y, line, fontsize=9.2, va="top")
-                    y -= 0.021
 
         pdf.savefig(fig, bbox_inches="tight")
         plt.close(fig)
