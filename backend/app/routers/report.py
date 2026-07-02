@@ -1,106 +1,84 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from typing import Any, Dict
-import uuid
-import json
-import os
+"""Fairness experiment report endpoints."""
+
 from pathlib import Path
-from datetime import datetime
+
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import FileResponse
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_session
-from app.models.models import UploadRecord
-from app.services.model_registry_service import ModelRegistryService
-from app.config import settings
+from app.models.experiment import FairnessExperimentReport
+from app.schemas.report import ReportGenerateRequest, ReportGenerateResponse
+from app.services.report_service import generate_fairness_experiment_report
 
-router = APIRouter(prefix="/api/report", tags=["Reports"])
+router = APIRouter(prefix="/api/report", tags=["Fairness Reports"])
 
-@router.post("/generate")
+
+@router.post("/generate", response_model=ReportGenerateResponse)
 async def generate_report(
-    payload: Dict[str, Any],
-    session: AsyncSession = Depends(get_session)
-):
-    upload_id = payload.get("upload_id")
-    if not upload_id:
-        raise HTTPException(status_code=400, detail="upload_id is required")
+    payload: ReportGenerateRequest,
+    session: AsyncSession = Depends(get_session),
+) -> ReportGenerateResponse:
+    try:
+        return await generate_fairness_experiment_report(payload, session)
+    except ValueError as error:
+        raise HTTPException(status_code=404, detail=str(error))
+    except Exception as error:
+        raise HTTPException(
+            status_code=500, detail=f"Report generation failed: {error}"
+        )
 
-    # Fetch comparison data to include in report
-    comparison = await ModelRegistryService.compare_models(upload_id, session)
-    if not comparison:
-        raise HTTPException(status_code=404, detail="No models found for report generation")
-
-    # Generate a unique report ID
-    report_id = str(uuid.uuid4())
-    
-    # Create report structure matching frontend expectations
-    models_data = [
-        {
-            "model_id": m.model_id,
-            "model_name": m.model_name,
-            "source_type": m.source_type,
-            "accuracy": m.accuracy,
-            "fairness_score": m.fairness_score,
-            "combined_score": m.combined_score,
-            "dpd": m.dpd,
-            "eod": m.eod,
-            "dir": m.dir
-        } for m in comparison.models
-    ]
-
-    report_payload = {
-        "comparison_models": models_data,
-        "chart_data": {
-            "labels": [m.model_name for m in comparison.models],
-            "datasets": [
-                {
-                    "label": "Accuracy",
-                    "data": [m.accuracy for m in comparison.models]
-                },
-                {
-                    "label": "Fairness Score",
-                    "data": [m.fairness_score for m in comparison.models]
-                }
-            ],
-            "scatter": [
-                {
-                    "x": m.accuracy,
-                    "y": m.fairness_score,
-                    "source_type": m.source_type,
-                    "name": m.model_name
-                } for m in comparison.models
-            ]
-        }
-    }
-
-    report_data = {
-        "report_id": report_id,
-        "upload_id": upload_id,
-        "title": f"Fairness Audit Report: {upload_id}",
-        "summary": comparison.summary,
-        "report_payload": report_payload,
-        "pdf_download_url": f"/api/report/download/{report_id}",
-        "created_at": datetime.utcnow().isoformat()
-    }
-
-    # Save report to artifacts
-    report_dir = Path(settings.ARTIFACT_DIR) / "reports"
-    report_dir.mkdir(parents=True, exist_ok=True)
-    
-    report_path = report_dir / f"report_{report_id}.json"
-    with open(report_path, "w") as f:
-        json.dump(report_data, f, indent=4)
-
-    return report_data
 
 @router.get("/download/{report_id}")
-async def download_report(report_id: str):
-    report_path = Path(settings.ARTIFACT_DIR) / "reports" / f"report_{report_id}.json"
-    if not report_path.exists():
+async def download_report(
+    report_id: str,
+    session: AsyncSession = Depends(get_session),
+):
+    record = (
+        await session.execute(
+            select(FairnessExperimentReport).where(
+                FairnessExperimentReport.report_id == report_id
+            )
+        )
+    ).scalar_one_or_none()
+
+    if not record:
         raise HTTPException(status_code=404, detail="Report not found")
-    
-    from fastapi.responses import FileResponse
+
+    pdf_path = Path(record.pdf_path)
+    if not pdf_path.exists():
+        raise HTTPException(status_code=404, detail="Report file not found on server")
+
     return FileResponse(
-        path=report_path,
-        filename=f"bias_buster_report_{report_id[:8]}.json",
-        media_type="application/json"
+        path=pdf_path,
+        media_type="application/pdf",
+        filename=f"{report_id}.pdf",
+    )
+
+
+@router.get("/download-json/{report_id}")
+async def download_report_json(
+    report_id: str,
+    session: AsyncSession = Depends(get_session),
+):
+    record = (
+        await session.execute(
+            select(FairnessExperimentReport).where(
+                FairnessExperimentReport.report_id == report_id
+            )
+        )
+    ).scalar_one_or_none()
+
+    if not record:
+        raise HTTPException(status_code=404, detail="Report not found")
+
+    json_path = Path(record.json_path)
+    if not json_path.exists():
+        raise HTTPException(status_code=404, detail="Report metadata not found")
+
+    return FileResponse(
+        path=json_path,
+        media_type="application/json",
+        filename=f"{report_id}.json",
     )

@@ -216,7 +216,7 @@ export const ComparisonDashboard = ({
               Fairness: {getMetric(recommended, "fairness_score").toFixed(3)}
             </div>
           </div>
-          <div className="mt-4 flex gap-3">
+          <div className="mt-4 flex flex-wrap gap-3">
             <button
               onClick={() => onDownload(recommended)}
               className="bg-white text-orange-600 px-4 py-2 rounded-lg font-bold text-sm hover:bg-orange-50 transition-colors flex items-center gap-2 shadow-sm"
@@ -230,6 +230,19 @@ export const ComparisonDashboard = ({
             >
               <FileText className="w-4 h-4" />
               {reportBusy ? "Generating Report..." : "Generate Report"}
+            </button>
+            <button
+              onClick={() => {
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `bias_buster_registry_${data.upload_id || 'export'}.json`;
+                a.click();
+              }}
+              className="bg-orange-800/40 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-orange-800 transition-colors flex items-center gap-2 shadow-sm"
+            >
+              <Database className="w-4 h-4" /> Export JSON
             </button>
           </div>
         </div>
@@ -741,15 +754,25 @@ export const ReportPreviewModal = ({ report, onClose }: any) => {
 
             <div className="border rounded-2xl p-4 bg-white">
               <h4 className="font-bold text-gray-800 mb-3">Actions</h4>
-              <div className="space-y-3">
+              <div className="grid grid-cols-1 gap-3">
                 <button
                   onClick={() =>
                     window.open(resolveUrl(report.pdf_download_url), "_blank")
                   }
-                  className="w-full py-2.5 rounded-xl bg-orange-500 text-white font-semibold hover:bg-orange-600 transition-colors shadow-sm"
+                  className="w-full py-2.5 rounded-xl bg-orange-500 text-white font-semibold hover:bg-orange-600 transition-colors shadow-sm flex items-center justify-center gap-2"
                 >
-                  Download PDF Report
+                  <FileText className="w-4 h-4" /> Download PDF Report
                 </button>
+                {report.json_download_url && (
+                  <button
+                    onClick={() =>
+                      window.open(resolveUrl(report.json_download_url), "_blank")
+                    }
+                    className="w-full py-2.5 rounded-xl bg-gray-100 text-gray-700 font-semibold hover:bg-gray-200 transition-colors border border-gray-200 flex items-center justify-center gap-2"
+                  >
+                    <Database className="w-4 h-4" /> Download JSON Data
+                  </button>
+                )}
               </div>
             </div>
 

@@ -260,7 +260,7 @@ function WorkspaceLayoutInner({ children }: { children: React.ReactNode }) {
             <option value="COMPARE" disabled={!mitigationResults}>COMPARE</option>
           </select>
 
-          <button 
+          <button
             onClick={handleSend}
             className="px-6 py-2 bg-orange-500 text-white text-sm font-semibold rounded hover:bg-orange-600 flex items-center gap-2 shadow-sm"
           >
@@ -270,11 +270,11 @@ function WorkspaceLayoutInner({ children }: { children: React.ReactNode }) {
 
         {/* Tab Bar */}
         <div className="bg-white border-b border-gray-200 px-6">
-            <div className="flex gap-6">
-                <button className="px-1 py-3 text-sm font-medium text-orange-600 border-b-2 border-orange-500">
-                    Params
-                </button>
-            </div>
+          <div className="flex gap-6">
+            <button className="px-1 py-3 text-sm font-medium text-orange-600 border-b-2 border-orange-500">
+              Params
+            </button>
+          </div>
         </div>
 
         {/* Content */}
