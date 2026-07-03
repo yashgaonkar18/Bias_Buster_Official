@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { useWorkspace } from "../WorkspaceContext";
 import { useRouter } from "next/navigation";
 import { Brain, Upload, CheckCircle, Database, ChevronRight, Save } from "lucide-react";
@@ -14,15 +14,14 @@ export default function ValidatePage() {
     setDatasetFile,
     modelFile,
     setModelFile,
-    uploading,
     uploadError,
     uploadResponse,
-    uploadDatasetAndModel,
     processingStep,
     processingPhase,
     setRequestMethod
   } = useWorkspace();
-
+  const modelInputRef = useRef<HTMLInputElement>(null);
+  const datasetInputRef = useRef<HTMLInputElement>(null);
   const [activeResponseTab, setActiveResponseTab] = useState("body");
 
   // FULL SCREEN LOADER
@@ -38,32 +37,62 @@ export default function ValidatePage() {
         </h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-3">Model Upload (Phase 1)</label>
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 hover:bg-blue-50 transition-all cursor-pointer h-full flex flex-col justify-center">
-              <Brain className="w-8 h-8 text-blue-400 mx-auto mb-2" />
-              <p className="text-sm font-medium text-gray-700 mb-1">Upload Trained ML Model</p>
-              <input
-                type="file"
-                accept=".pkl,.joblib"
-                onChange={(e) => setModelFile(e.target.files?.[0] || null)}
-              />
-              {modelFile && <div className="text-xs text-gray-600 mt-2">Selected: {modelFile.name}</div>}
-            </div>
+          <div
+            onClick={() => modelInputRef.current?.click()}
+            className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 hover:bg-blue-50 transition-all cursor-pointer h-full flex flex-col justify-center "
+          >
+            <Brain className="w-8 h-8 text-blue-400 mx-auto mb-2" />
+
+            <p className="text-sm font-medium text-gray-700 mb-1">
+              Upload Trained ML Model
+            </p>
+
+            <p className="text-xs text-gray-500">
+              Click anywhere to browse
+            </p>
+
+            <input
+              ref={modelInputRef}
+              type="file"
+              accept=".pkl,.joblib"
+              className="hidden"
+              onChange={(e) => setModelFile(e.target.files?.[0] || null)}
+            />
+
+            {modelFile && (
+              <div className="text-xs text-gray-600 mt-3">
+                Selected: {modelFile.name}
+              </div>
+            )}
           </div>
 
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-3">Dataset Upload (Phase 1)</label>
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-orange-400 hover:bg-orange-50 transition-all cursor-pointer h-full flex flex-col justify-center">
-              <Upload className="w-8 h-8 text-orange-400 mx-auto mb-2" />
-              <p className="text-sm font-medium text-gray-700 mb-1">Upload Analysis Dataset</p>
-              <input
-                type="file"
-                accept=".csv"
-                onChange={(e) => setDatasetFile(e.target.files?.[0] || null)}
-              />
-              {datasetFile && <div className="text-xs text-gray-600 mt-2">Selected: {datasetFile.name}</div>}
-            </div>
+          <div
+            onClick={() => datasetInputRef.current?.click()}
+            className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-orange-400 hover:bg-orange-50 transition-all cursor-pointer h-full flex flex-col justify-center"
+          >
+            <Upload className="w-8 h-8 text-orange-400 mx-auto mb-2" />
+
+            <p className="text-sm font-medium text-gray-700 mb-1">
+              Upload Analysis Dataset
+            </p>
+
+            <p className="text-xs text-gray-500">
+              Click anywhere to browse
+            </p>
+
+            <input
+              ref={datasetInputRef}
+              type="file"
+              accept=".csv"
+              className="hidden"
+              onChange={(e) => setDatasetFile(e.target.files?.[0] || null)}
+            />
+
+            {datasetFile && (
+              <div className="text-xs text-gray-600 mt-3">
+                Selected: {datasetFile.name}
+              </div>
+            )}
           </div>
         </div>
 

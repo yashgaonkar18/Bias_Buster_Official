@@ -1,0 +1,608 @@
+{
+  "report_id": "07ed1b1b-1fcd-48e5-9646-7fcabd9dac14",
+  "title": "Fairness Experiment Report - Upload 65",
+  "generated_at": "2026-07-03T05:36:52.088477Z",
+  "section_flags": {
+    "comparison": true,
+    "optimization": true,
+    "experiments": false,
+    "explainability": false
+  },
+  "overview": {
+    "upload_id": 65,
+    "dataset_filename": "adult.csv",
+    "model_filename": "adult_income_pipeline.pkl",
+    "model_type": "LogisticRegression",
+    "best_balanced_model_name": "ThresholdOptimizer_mitigated_threshold",
+    "best_accuracy_model_name": "LogisticRegression_optimized_gridsearch",
+    "best_fairness_model_name": "ThresholdOptimizer_mitigated_threshold",
+    "key_metrics": {
+      "accuracy": 0.8510503255394947,
+      "fairness_score": 0.9365420342967161,
+      "dpd": 0.09055229504293137,
+      "eod": 0.036363636363636376,
+      "dir": 0.576772504091653,
+      "combined_score": 0.9023453507938275
+    }
+  },
+  "summary": "Fairness Experiment Report - Upload 65 summarizes the current fairness state for upload 65. Accuracy changed by -0.002 and fairness score changed by +0.177. Good fairness gain with acceptable accuracy trade-off. The best balanced model is ThresholdOptimizer_mitigated_threshold with combined score 0.902.",
+  "interpretation": {
+    "summary": "Good fairness gain with acceptable accuracy trade-off. The best balanced model is ThresholdOptimizer_mitigated_threshold with combined score 0.902.",
+    "accuracy_change": -0.0023,
+    "fairness_change": 0.1766
+  },
+  "comparison_models": [
+    {
+      "model_id": "587a8578-98d4-497a-b851-e3fcd2d9ebf7",
+      "model_name": "ThresholdOptimizer_mitigated_threshold",
+      "model_type": "ThresholdOptimizer",
+      "source_type": "mitigated",
+      "version": "v1_mitigated_threshold",
+      "accuracy": 0.8510503255394947,
+      "fairness_score": 0.9365420342967161,
+      "combined_score": 0.9023453507938275,
+      "dpd": 0.09055229504293137,
+      "eod": 0.036363636363636376,
+      "dir": 0.576772504091653,
+      "bias_severity": "Low",
+      "recommendation_status": "recommended",
+      "download_url": "/api/models/download/587a8578-98d4-497a-b851-e3fcd2d9ebf7",
+      "dataset_download_url": null,
+      "artifact_name": "model_65_threshold_mitigated.joblib",
+      "summary": null,
+      "is_recommended": true
+    },
+    {
+      "model_id": "4a7b6b14-6053-4a7a-8efc-40f1097e1aea",
+      "model_name": "ThresholdOptimizer_mitigated_threshold",
+      "model_type": "ThresholdOptimizer",
+      "source_type": "mitigated",
+      "version": "v1_mitigated_threshold",
+      "accuracy": 0.850538470988084,
+      "fairness_score": 0.9183643418058557,
+      "combined_score": 0.891233993478747,
+      "dpd": 0.08690768002465227,
+      "eod": 0.07636363636363641,
+      "dir": 0.5782339745768473,
+      "bias_severity": "Low",
+      "recommendation_status": null,
+      "download_url": "/api/models/download/4a7b6b14-6053-4a7a-8efc-40f1097e1aea",
+      "dataset_download_url": null,
+      "artifact_name": "model_65_threshold_mitigated.joblib",
+      "summary": null,
+      "is_recommended": false
+    },
+    {
+      "model_id": "ca3b37d2-5218-4c58-a219-ae1a1d1b6e76",
+      "model_name": "ThresholdOptimizer_mitigated_threshold",
+      "model_type": "ThresholdOptimizer",
+      "source_type": "mitigated",
+      "version": "v1_mitigated_threshold",
+      "accuracy": 0.8512141189959461,
+      "fairness_score": 0.897408072104142,
+      "combined_score": 0.8789304908608637,
+      "dpd": 0.09590020657873828,
+      "eod": 0.10928364921297784,
+      "dir": 0.5572267057960382,
+      "bias_severity": "Medium",
+      "recommendation_status": null,
+      "download_url": "/api/models/download/ca3b37d2-5218-4c58-a219-ae1a1d1b6e76",
+      "dataset_download_url": null,
+      "artifact_name": "model_65_threshold_mitigated.joblib",
+      "summary": null,
+      "is_recommended": false
+    },
+    {
+      "model_id": "a23b124d-33cb-4b9d-a21c-00879234af00",
+      "model_name": "LogisticRegression_optimized_optuna",
+      "model_type": "LogisticRegression",
+      "source_type": "optimized",
+      "version": "v1_optimized",
+      "accuracy": 0.8535481757503788,
+      "fairness_score": 0.7623769950393732,
+      "combined_score": 0.8170797034659766,
+      "dpd": 0.1979843962293222,
+      "eod": 0.2772616136919315,
+      "dir": 0.2249012941434525,
+      "bias_severity": "High",
+      "recommendation_status": null,
+      "download_url": "/api/models/download/a23b124d-33cb-4b9d-a21c-00879234af00",
+      "dataset_download_url": null,
+      "artifact_name": "adult_income_pipeline_optuna_optimized_model_20260703T053516Z.joblib",
+      "summary": null,
+      "is_recommended": false
+    },
+    {
+      "model_id": "ce49ab33-42da-46bf-b9d3-eb4fd765aab8",
+      "model_name": "LogisticRegression_optimized_gridsearch",
+      "model_type": "LogisticRegression",
+      "source_type": "optimized",
+      "version": "v2_optimized",
+      "accuracy": 0.8535891241144916,
+      "fairness_score": 0.7599320072643121,
+      "combined_score": 0.8161262773744198,
+      "dpd": 0.1979843962293222,
+      "eod": 0.28215158924205375,
+      "dir": 0.2249012941434525,
+      "bias_severity": "High",
+      "recommendation_status": null,
+      "download_url": "/api/models/download/ce49ab33-42da-46bf-b9d3-eb4fd765aab8",
+      "dataset_download_url": null,
+      "artifact_name": "adult_income_pipeline_gridsearch_optimized_model_20260703T053603Z.joblib",
+      "summary": null,
+      "is_recommended": false
+    },
+    {
+      "model_id": "529f8d05-0466-4dc5-a491-dd6131162fe3",
+      "model_name": "Pipeline_mitigated_reweighting",
+      "model_type": "Pipeline",
+      "source_type": "mitigated",
+      "version": "v1_mitigated_reweighting",
+      "accuracy": 0.8494123909749806,
+      "fairness_score": 0.7747257552353982,
+      "combined_score": 0.8046004095312311,
+      "dpd": 0.18795680248763885,
+      "eod": 0.26259168704156477,
+      "dir": 0.24067451335445902,
+      "bias_severity": "High",
+      "recommendation_status": null,
+      "download_url": "/api/models/download/529f8d05-0466-4dc5-a491-dd6131162fe3",
+      "dataset_download_url": null,
+      "artifact_name": "model_65_reweighting_mitigated.joblib",
+      "summary": null,
+      "is_recommended": false
+    },
+    {
+      "model_id": "b0ebab03-dd50-4c42-9ea3-e992d001901e",
+      "model_name": "Pipeline_mitigated_reweighting",
+      "model_type": "Pipeline",
+      "source_type": "mitigated",
+      "version": "v1_mitigated_reweighting",
+      "accuracy": 0.8494123909749806,
+      "fairness_score": 0.7747257552353982,
+      "combined_score": 0.8046004095312311,
+      "dpd": 0.18795680248763885,
+      "eod": 0.26259168704156477,
+      "dir": 0.24067451335445902,
+      "bias_severity": "High",
+      "recommendation_status": null,
+      "download_url": "/api/models/download/b0ebab03-dd50-4c42-9ea3-e992d001901e",
+      "dataset_download_url": null,
+      "artifact_name": "model_65_reweighting_mitigated.joblib",
+      "summary": null,
+      "is_recommended": false
+    },
+    {
+      "model_id": "976d3b42-fd1b-4068-99de-22fa1a25f243",
+      "model_name": "adult_income_pipeline_optuna_optimized_model",
+      "model_type": "LogisticRegression",
+      "source_type": "optimized",
+      "version": "v1_optuna",
+      "accuracy": 0.8535481757503788,
+      "fairness_score": 0.7623769950393732,
+      "combined_score": 0.7988454673237754,
+      "dpd": 0.1979843962293222,
+      "eod": 0.2772616136919315,
+      "dir": 0.2249012941434525,
+      "bias_severity": "High",
+      "recommendation_status": "recommended",
+      "download_url": "/api/optimize/download/976d3b42-fd1b-4068-99de-22fa1a25f243",
+      "dataset_download_url": null,
+      "artifact_name": "adult_income_pipeline_optuna_optimized_model_20260703T053516Z.joblib",
+      "summary": "Optimization method: optuna",
+      "is_recommended": false
+    },
+    {
+      "model_id": "8c70aaec-966b-4c92-ad7e-fb2744929720",
+      "model_name": "adult_income_pipeline_gridsearch_optimized_model",
+      "model_type": "LogisticRegression",
+      "source_type": "optimized",
+      "version": "v1_gridsearch",
+      "accuracy": 0.8535891241144916,
+      "fairness_score": 0.7599320072643121,
+      "combined_score": 0.7973948540043838,
+      "dpd": 0.1979843962293222,
+      "eod": 0.28215158924205375,
+      "dir": 0.2249012941434525,
+      "bias_severity": "High",
+      "recommendation_status": "recommended",
+      "download_url": "/api/optimize/download/8c70aaec-966b-4c92-ad7e-fb2744929720",
+      "dataset_download_url": null,
+      "artifact_name": "adult_income_pipeline_gridsearch_optimized_model_20260703T053603Z.joblib",
+      "summary": "Optimization method: gridsearch",
+      "is_recommended": false
+    },
+    {
+      "model_id": "upload-65-original",
+      "model_name": "adult_income_pipeline.pkl",
+      "model_type": "LogisticRegression",
+      "source_type": "original",
+      "version": "v1_original",
+      "accuracy": 0.8533229597477581,
+      "fairness_score": 0.7599320072643121,
+      "combined_score": 0.7972883882576904,
+      "dpd": 0.1979843962293222,
+      "eod": 0.28215158924205375,
+      "dir": 0.2249012941434525,
+      "bias_severity": "High",
+      "recommendation_status": "baseline",
+      "download_url": "/api/models/download-original/65",
+      "dataset_download_url": null,
+      "artifact_name": "adult_income_pipeline.pkl",
+      "summary": "Baseline original upload used for comparison.",
+      "is_recommended": false
+    },
+    {
+      "model_id": "3518f9f1-6af1-4998-bdc6-4dae04ec9711",
+      "model_name": "Pipeline_mitigated_smote",
+      "model_type": "Pipeline",
+      "source_type": "mitigated",
+      "version": "v1_mitigated_smote",
+      "accuracy": 0.8105728676139389,
+      "fairness_score": 0.7184812337415944,
+      "combined_score": 0.7553178872905322,
+      "dpd": 0.2717667593567195,
+      "eod": 0.29127077316009153,
+      "dir": 0.28932226648369946,
+      "bias_severity": "High",
+      "recommendation_status": null,
+      "download_url": "/api/models/download/3518f9f1-6af1-4998-bdc6-4dae04ec9711",
+      "dataset_download_url": null,
+      "artifact_name": "model_65_smote_mitigated.joblib",
+      "summary": null,
+      "is_recommended": false
+    },
+    {
+      "model_id": "0f5ecaa7-a6c6-40fe-b692-c84f560fc412",
+      "model_name": "Pipeline_mitigated_smote",
+      "model_type": "Pipeline",
+      "source_type": "mitigated",
+      "version": "v1_mitigated_smote",
+      "accuracy": 0.8105728676139389,
+      "fairness_score": 0.7184812337415944,
+      "combined_score": 0.7553178872905322,
+      "dpd": 0.2717667593567195,
+      "eod": 0.29127077316009153,
+      "dir": 0.28932226648369946,
+      "bias_severity": "High",
+      "recommendation_status": null,
+      "download_url": "/api/models/download/0f5ecaa7-a6c6-40fe-b692-c84f560fc412",
+      "dataset_download_url": null,
+      "artifact_name": "model_65_smote_mitigated.joblib",
+      "summary": null,
+      "is_recommended": false
+    }
+  ],
+  "chart_data": {
+    "labels": [
+      "ThresholdOptimizer_mitigated_threshold",
+      "ThresholdOptimizer_mitigated_threshold",
+      "ThresholdOptimizer_mitigated_threshold",
+      "LogisticRegression_optimized_optuna",
+      "LogisticRegression_optimized_gridsearch",
+      "Pipeline_mitigated_reweighting",
+      "Pipeline_mitigated_reweighting",
+      "adult_income_pipeline_optuna_optimized_model",
+      "adult_income_pipeline_gridsearch_optimized_model",
+      "adult_income_pipeline.pkl",
+      "Pipeline_mitigated_smote",
+      "Pipeline_mitigated_smote"
+    ],
+    "datasets": [
+      {
+        "label": "Accuracy",
+        "data": [
+          0.8510503255394947,
+          0.850538470988084,
+          0.8512141189959461,
+          0.8535481757503788,
+          0.8535891241144916,
+          0.8494123909749806,
+          0.8494123909749806,
+          0.8535481757503788,
+          0.8535891241144916,
+          0.8533229597477581,
+          0.8105728676139389,
+          0.8105728676139389
+        ]
+      },
+      {
+        "label": "Fairness Score",
+        "data": [
+          0.9365420342967161,
+          0.9183643418058557,
+          0.897408072104142,
+          0.7623769950393732,
+          0.7599320072643121,
+          0.7747257552353982,
+          0.7747257552353982,
+          0.7623769950393732,
+          0.7599320072643121,
+          0.7599320072643121,
+          0.7184812337415944,
+          0.7184812337415944
+        ]
+      },
+      {
+        "label": "Combined Score",
+        "data": [
+          0.9023453507938275,
+          0.891233993478747,
+          0.8789304908608637,
+          0.8170797034659766,
+          0.8161262773744198,
+          0.8046004095312311,
+          0.8046004095312311,
+          0.7988454673237754,
+          0.7973948540043838,
+          0.7972883882576904,
+          0.7553178872905322,
+          0.7553178872905322
+        ]
+      }
+    ],
+    "scatter": [
+      {
+        "label": "ThresholdOptimizer_mitigated_threshold",
+        "x": 0.8510503255394947,
+        "y": 0.9365420342967161,
+        "combined": 0.9023453507938275,
+        "source_type": "mitigated"
+      },
+      {
+        "label": "ThresholdOptimizer_mitigated_threshold",
+        "x": 0.850538470988084,
+        "y": 0.9183643418058557,
+        "combined": 0.891233993478747,
+        "source_type": "mitigated"
+      },
+      {
+        "label": "ThresholdOptimizer_mitigated_threshold",
+        "x": 0.8512141189959461,
+        "y": 0.897408072104142,
+        "combined": 0.8789304908608637,
+        "source_type": "mitigated"
+      },
+      {
+        "label": "LogisticRegression_optimized_optuna",
+        "x": 0.8535481757503788,
+        "y": 0.7623769950393732,
+        "combined": 0.8170797034659766,
+        "source_type": "optimized"
+      },
+      {
+        "label": "LogisticRegression_optimized_gridsearch",
+        "x": 0.8535891241144916,
+        "y": 0.7599320072643121,
+        "combined": 0.8161262773744198,
+        "source_type": "optimized"
+      },
+      {
+        "label": "Pipeline_mitigated_reweighting",
+        "x": 0.8494123909749806,
+        "y": 0.7747257552353982,
+        "combined": 0.8046004095312311,
+        "source_type": "mitigated"
+      },
+      {
+        "label": "Pipeline_mitigated_reweighting",
+        "x": 0.8494123909749806,
+        "y": 0.7747257552353982,
+        "combined": 0.8046004095312311,
+        "source_type": "mitigated"
+      },
+      {
+        "label": "adult_income_pipeline_optuna_optimized_model",
+        "x": 0.8535481757503788,
+        "y": 0.7623769950393732,
+        "combined": 0.7988454673237754,
+        "source_type": "optimized"
+      },
+      {
+        "label": "adult_income_pipeline_gridsearch_optimized_model",
+        "x": 0.8535891241144916,
+        "y": 0.7599320072643121,
+        "combined": 0.7973948540043838,
+        "source_type": "optimized"
+      },
+      {
+        "label": "adult_income_pipeline.pkl",
+        "x": 0.8533229597477581,
+        "y": 0.7599320072643121,
+        "combined": 0.7972883882576904,
+        "source_type": "original"
+      },
+      {
+        "label": "Pipeline_mitigated_smote",
+        "x": 0.8105728676139389,
+        "y": 0.7184812337415944,
+        "combined": 0.7553178872905322,
+        "source_type": "mitigated"
+      },
+      {
+        "label": "Pipeline_mitigated_smote",
+        "x": 0.8105728676139389,
+        "y": 0.7184812337415944,
+        "combined": 0.7553178872905322,
+        "source_type": "mitigated"
+      }
+    ]
+  },
+  "experiments": {
+    "latest": null,
+    "latest_optimization": {
+      "optimization_id": "8c70aaec-966b-4c92-ad7e-fb2744929720",
+      "optimization_method": "gridsearch",
+      "best_params": {
+        "model__C": 10,
+        "model__max_iter": 100,
+        "model__penalty": "l2",
+        "model__solver": "lbfgs"
+      },
+      "metrics_before": {
+        "target_info": {
+          "audit_mode": "multiclass",
+          "dropped_rows": 0,
+          "unique_classes": 2
+        },
+        "sensitive_columns": [
+          "race"
+        ],
+        "fairness": {
+          "aggregate": {
+            "dpd": 0.1979843962293222,
+            "eod": 0.28215158924205375,
+            "dir": 0.2249012941434525,
+            "fairness_score": 0.7599320072643121
+          },
+          "by_attribute": {
+            "race": {
+              "selection_rate": {
+                "Black": 0.07897545357524013,
+                "White": 0.20923327426847374,
+                "Asian-Pac-Islander": 0.2554312047399605,
+                "Other": 0.07389162561576355,
+                "Amer-Indian-Eskimo": 0.0574468085106383
+              },
+              "true_positive_rate": {
+                "Black": 0.46819787985865724,
+                "White": 0.6081832751956255,
+                "Asian-Pac-Islander": 0.6821515892420538,
+                "Other": 0.42,
+                "Amer-Indian-Eskimo": 0.4
+              },
+              "dpd": 0.1979843962293222,
+              "eod": 0.28215158924205375,
+              "dir": 0.2249012941434525
+            }
+          },
+          "warnings": []
+        },
+        "performance": {
+          "accuracy": 0.8533229597477581,
+          "precision": 0.73673191667539,
+          "recall": 0.6022075810729871,
+          "f1": 0.6627118644067796,
+          "roc_auc": 0.9079565832417316
+        },
+        "diagnostics": {
+          "dataset_shape": [
+            48842,
+            15
+          ],
+          "target_distribution": {
+            "0": 37155,
+            "1": 11687
+          },
+          "prediction_distribution": {
+            "0": 39289,
+            "1": 9553
+          },
+          "sensitive_groups": {
+            "race": {
+              "White": 41762,
+              "Black": 4685,
+              "Asian-Pac-Islander": 1519,
+              "Amer-Indian-Eskimo": 470,
+              "Other": 406
+            }
+          },
+          "positive_label_mapping": {
+            "positive_label": 1,
+            "audit_mode": "multiclass"
+          }
+        },
+        "warnings": []
+      },
+      "metrics_after": {
+        "target_info": {
+          "audit_mode": "multiclass",
+          "dropped_rows": 0,
+          "unique_classes": 2
+        },
+        "sensitive_columns": [
+          "race"
+        ],
+        "fairness": {
+          "aggregate": {
+            "dpd": 0.1979843962293222,
+            "eod": 0.28215158924205375,
+            "dir": 0.2249012941434525,
+            "fairness_score": 0.7599320072643121
+          },
+          "by_attribute": {
+            "race": {
+              "selection_rate": {
+                "Black": 0.07876200640341516,
+                "White": 0.20937694554858483,
+                "Asian-Pac-Islander": 0.2554312047399605,
+                "Other": 0.07389162561576355,
+                "Amer-Indian-Eskimo": 0.0574468085106383
+              },
+              "true_positive_rate": {
+                "Black": 0.4664310954063604,
+                "White": 0.6091260488356746,
+                "Asian-Pac-Islander": 0.6821515892420538,
+                "Other": 0.42,
+                "Amer-Indian-Eskimo": 0.4
+              },
+              "dpd": 0.1979843962293222,
+              "eod": 0.28215158924205375,
+              "dir": 0.2249012941434525
+            }
+          },
+          "warnings": []
+        },
+        "performance": {
+          "accuracy": 0.8535891241144916,
+          "precision": 0.7372881355932204,
+          "recall": 0.6029776674937966,
+          "f1": 0.6634031536832196,
+          "roc_auc": 0.9080034546630229
+        },
+        "diagnostics": {
+          "dataset_shape": [
+            48842,
+            15
+          ],
+          "target_distribution": {
+            "0": 37155,
+            "1": 11687
+          },
+          "prediction_distribution": {
+            "0": 39284,
+            "1": 9558
+          },
+          "sensitive_groups": {
+            "race": {
+              "White": 41762,
+              "Black": 4685,
+              "Asian-Pac-Islander": 1519,
+              "Amer-Indian-Eskimo": 470,
+              "Other": 406
+            }
+          },
+          "positive_label_mapping": {
+            "positive_label": 1,
+            "audit_mode": "multiclass"
+          }
+        },
+        "warnings": []
+      },
+      "improvements": {
+        "accuracy_gain_percent": 0.03,
+        "fairness_gain_percent": 0.0,
+        "f1_gain_percent": 0.07,
+        "roc_auc_gain_percent": 0.0
+      },
+      "status": "success"
+    },
+    "latest_mitigation": {
+      "id": 163,
+      "strategy_used": "threshold",
+      "artifact_model_path": "C:\\Users\\Yash Gaonkar\\AllInOne\\BiasBuster---Official\\backend\\artifacts\\models\\model_65_threshold_mitigated.joblib",
+      "artifact_dataset_path": null
+    },
+    "latest_correction": null
+  }
+}

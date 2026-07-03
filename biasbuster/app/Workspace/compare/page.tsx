@@ -2,15 +2,13 @@
 
 import React, { useState } from "react";
 import { useWorkspace } from "../WorkspaceContext";
-import { useRouter } from "next/navigation";
 import { BarChart3, Save } from "lucide-react";
 import ProcessingLoader from "@/app/component/ProcessingLoader";
 import { ComparisonDashboard, DownloadModal, ReportPreviewModal } from "../components/ComparisonComponents";
 
 export default function ComparePage() {
-  const router = useRouter();
   const {
-    uploadId,
+    
     processingStep,
     processingPhase,
     mitigationResults,

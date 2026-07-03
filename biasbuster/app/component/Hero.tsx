@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Ripple } from "@/components/ui/ripple"
-import { ArrowRight, Terminal, ChevronRight, Cpu, Shield, Zap, Database, ShieldQuestionMark } from "lucide-react";
+import { ChevronRight, Cpu, Shield, Database } from "lucide-react";
 
 export function Hero() {
     return (
@@ -41,7 +41,7 @@ export function Hero() {
                         News
                     </span>
                     <span className="text-[10px] font-mono font-medium uppercase tracking-wide text-[#5C3213]">
-                        BiasBuster 2.0: Now with Multimodal Scanning
+                        Coming Soon: Multimodal Testing
                     </span>
                     <ChevronRight className="size-3 text-[#5C3213]" />
                 </div>
@@ -55,8 +55,8 @@ export function Hero() {
                 </h1>
 
                 <p className="max-w-2xl text-lg md:text-xl text-muted-foreground mb-10 font-medium leading-relaxed">
-                    Deploy intensive bias detection across text, image, and video models in minutes.
-                    Scale in 50+ regions with enterprise-grade compliance.
+                    Detect, analyze, and mitigate bias in machine learning models with automated fairness metrics,
+                    intelligent mitigation strategies, and comprehensive audit reports.
                 </p>
 
                 <div className="flex flex-col sm:flex-row items-center gap-6 mb-20">
@@ -79,7 +79,7 @@ export function Hero() {
                         <div className="absolute inset-0 z-10 pointer-events-none " />
 
                         <video
-                            src=""
+                            src="/Crewai-Hero.mp4"
                             autoPlay
                             loop
                             playsInline
