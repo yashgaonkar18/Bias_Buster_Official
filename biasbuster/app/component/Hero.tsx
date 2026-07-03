@@ -79,7 +79,7 @@ export function Hero() {
                         <div className="absolute inset-0 z-10 pointer-events-none " />
 
                         <video
-                            src="/Crewai-Hero.mp4"
+                            src=""
                             autoPlay
                             loop
                             playsInline
