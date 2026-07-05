@@ -1,0 +1,60 @@
+# ========================
+# Root .gitignore
+# ========================
+
+# Backend (Python)
+__pycache__/
+*.py[cod]
+*.so
+*.pyd
+*.pyo
+venv/
+.venv/
+env/
+ENV/
+*.env
+!.env.example
+*.db
+*.sqlite3
+
+# Temp & Uploads
+tmp/
+temp/
+uploads/
+biasbuster_uploads/
+**/biasbuster_uploads/
+artifacts/          # ← Very important
+**/artifacts/
+
+# Models & Large files
+*.pkl
+*.joblib
+*.h5
+*.pt
+*.onnx
+
+# Logs
+*.log
+logs/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.history/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node.js / Frontend
+node_modules/
+.next/
+out/
+build/
+dist/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
