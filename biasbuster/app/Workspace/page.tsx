@@ -55,8 +55,6 @@ const InfoRow = ({ label, value }: { label: string; value?: any }) => (
   </div>
 );
 
-
-
 const MetricRow = ({ name, value, baselineValue }: any) => {
   const interpretation = getMetricInterpretation(name, value, baselineValue);
 
@@ -2202,8 +2200,6 @@ export default function BiasBuster() {
             {biasResults.bias_present && (
               <button
                 onClick={async () => {
-                  setRequestMethod("MITIGATE");
-                  setShowResponse(false);
                   try {
                     setProcessingStep("Fetching strategy recommendation...");
                     const rec = await api.post(`/api/bias/recommend-strategy`, {
@@ -2218,6 +2214,8 @@ export default function BiasBuster() {
                         rec.data.recommendation.recommended_strategy,
                       );
                     }
+                    setRequestMethod("MITIGATE");
+                    setShowResponse(false);
                   } catch (e) {
                     setProcessingStep(null);
                     console.error("Failed to fetch recommendation", e);
@@ -3092,7 +3090,7 @@ export default function BiasBuster() {
           </div>
 
           <div className="p-6 bg-white">
-            {(uploading || processingStep) ? (
+            {uploading || processingStep ? (
               <ProcessingLoader
                 step={processingStep || "Processing..."}
                 phase={requestMethod}
