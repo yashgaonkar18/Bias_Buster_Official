@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, JSON, DateTime, ForeignKey
 from sqlalchemy.sql import func
+from sqlalchemy.orm import relationship
 from app.db import Base
 
 
@@ -11,3 +12,12 @@ class BiasAuditRecord(Base):
     audit_stage = Column(Integer)  # 0 = before, 1 = after
     audit_result = Column(JSON)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    user_id = Column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+
+    bias_audits = relationship(
+        "User",
+        back_populates="refresh_tokens",
+    )

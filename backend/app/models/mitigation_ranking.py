@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, String, JSON, DateTime, Float, Text, ForeignKey
 from sqlalchemy.sql import func
+from sqlalchemy.orm import relationship
 
 from app.db import Base
 
@@ -19,3 +20,12 @@ class MitigationRanking(Base):
     status = Column(String, default="success", nullable=False)
     error_message = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    user_id = Column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+
+    mitigation_rankings = relationship(
+        "User",
+        back_populates="refresh_tokens",
+    )
