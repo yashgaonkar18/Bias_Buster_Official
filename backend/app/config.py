@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     DEBUG: bool = True
 
     database_url: str
+    database_url: str
 
     TEMP_DIR: str = str(
         Path(__file__).resolve().parent.parent / "artifacts" / "uploads"
@@ -29,23 +30,19 @@ class Settings(BaseSettings):
     SECRET_KEY: str
     ALGORITHM: str = "HS256"
     
-    ACCESS_TOKEN_EXPIRE_MINUTES: int  = 60
+    ACCESS_TOKEN_EXPIRE_MINUTES: int  = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 30
 
-    GOOGLE_CLIENT_ID: str | None = None
-    GOOGLE_CLIENT_SECRET: str | None = None
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
 
-    GITHUB_CLIENT_ID: str | None = None
-    GITHUB_CLIENT_SECRET: str | None = None
+    GITHUB_CLIENT_ID: str = ""
+    GITHUB_CLIENT_SECRET: str = ""
 
-    RESEND_API_KEY: str | None = "re_L985fTmD_ELyih7pzpgFHwDpR8ikD8heL"
+    RESEND_API_KEY: str = ""
 
     FRONTEND_URL: str = "http://localhost:3000"
     BACKEND_URL: str = "http://localhost:8000"
-
-    EMAIL_FROM: str = "BiasBuster <onboarding@resend.dev>"
-    EMAIL_REPLY_TO: str = "support@biasbuster.com"
-    EMAIL_SUPPORT: str = "support@biasbuster.com"
 
     @property
     def DATABASE_URL(self):

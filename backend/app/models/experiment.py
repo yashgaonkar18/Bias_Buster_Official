@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, DateTime, JSON, Float, ForeignKey, Text
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship
 from app.db import Base
 
 
@@ -59,7 +60,10 @@ class ExperimentRun(Base):
         Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
     )
 
-    user = relationship("User", back_populates="experiment_runs")
+    experiment = relationship(
+        "User",
+        back_populates="refresh_tokens",
+    )
 
 
 class FairnessExperimentReport(Base):
@@ -85,4 +89,7 @@ class FairnessExperimentReport(Base):
         Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
     )
 
-    user = relationship("User", back_populates="fairness_experiment_reports")
+    experiment = relationship(
+        "User",
+        back_populates="refresh_tokens",
+    )

@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, JSON, DateTime, ForeignKey
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship
 from app.db import Base
 
 
@@ -19,4 +20,7 @@ class BiasMitigationRun(Base):
     user_id = Column(
         Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    user = relationship("User", back_populates="mitigation_runs")
+    mitigation_runs = relationship(
+        "User",
+        back_populates="refresh_tokens",
+    )

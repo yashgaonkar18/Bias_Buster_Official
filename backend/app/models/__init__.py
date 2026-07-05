@@ -18,14 +18,12 @@ from .mitigation_ranking import MitigationRanking
 
 from .experiment import (ExperimentRun, FairnessExperimentReport)
 
-# workspaces
-from .workspace import Workspace, DashboardExperiment
-
 # authentication
 from .user import User, AuthProvider
 from .refresh_token import RefreshToken
 
 __all__ = [
+    "Base",
     "Base",
     "UploadRecord",
     "CorrectionRecord",
@@ -34,12 +32,17 @@ __all__ = [
     "BiasAuditRecord",
     "BiasMitigationRun",
     "MitigationRanking",
+    "CorrectionRecord",
+    "OptimizationRun",
+    "ModelRegistry",
+    "BiasAuditRecord",
+    "BiasMitigationRun",
+    "MitigationRanking",
     "ExperimentRun",
     "FairnessExperimentReport",
-    "Workspace",
-    "DashboardExperiment",
     "User",
-    "AuthProvider",
+    "AuthProvider"
     "RefreshToken",
 ]
+
 

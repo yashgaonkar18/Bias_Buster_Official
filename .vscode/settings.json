@@ -1,5 +1,4 @@
 {
-<<<<<<< HEAD
   "python-envs.defaultEnvManager": "ms-python.python:system",
   "python-envs.pythonProjects": [
     {
@@ -8,7 +7,4 @@
       "packageManager": "ms-python.python:pip"
     }
   ]
-=======
-  "python-envs.defaultEnvManager": "ms-python.python:system"
->>>>>>> 4bc8d67 (Add report generation, fixed the UI, fixed download button)
 }

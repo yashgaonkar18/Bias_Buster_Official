@@ -59,7 +59,7 @@ class RefreshToken(Base):
         nullable=True,
     )
 
-    user = relationship(
+    refresh_token = relationship(
         "User",
         back_populates="refresh_tokens",
     )

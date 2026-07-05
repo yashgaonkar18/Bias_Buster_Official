@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, JSON, DateTime, Float, Text, ForeignKey
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship
 
 from app.db import Base
 
@@ -25,4 +26,7 @@ class MitigationRanking(Base):
         Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
     )
 
-    user = relationship("User", back_populates="mitigation_rankings")
+    mitigation_rankings = relationship(
+        "User",
+        back_populates="refresh_tokens",
+    )
