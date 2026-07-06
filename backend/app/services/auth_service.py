@@ -5,7 +5,6 @@ from datetime import datetime, timedelta, timezone
 from jose import JWTError
 from sqlalchemy.ext.asyncio import AsyncSession
 from itsdangerous import URLSafeTimedSerializer
-import resend
 
 from app.auth.exceptions import (
     AccountLockedException,
@@ -38,6 +37,11 @@ from app.models.user import (
 )
 from app.repositories.token_repository import TokenRepository
 from app.repositories.user_repository import UserRepository
+from app.services.email_service import EmailService
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class AuthService:
@@ -63,8 +67,8 @@ class AuthService:
         self.session = session
 
         self.users = UserRepository(session)
-
         self.tokens = TokenRepository(session)
+        self.email_service = EmailService()
 
     #### Private Helpers
 
@@ -199,6 +203,12 @@ class AuthService:
             provider=AuthProvider.EMAIL,
         )
 
+        # Send verification email (don't fail signup if email fails)
+        try:
+            await self.request_email_verification(user.email)
+        except Exception as e:
+            logger.exception("Failed to send verification email: %s", e)
+
         return await self._build_auth_response(
             user=user,
             user_agent=user_agent,
@@ -329,7 +339,7 @@ class AuthService:
         ip_address: str | None = None,
     ) -> AuthResponse:
         user = await self.users.get_by_email(email.lower().strip())
-        
+
         if not user:
             user = await self.users.create(
                 full_name=full_name,
@@ -340,19 +350,28 @@ class AuthService:
             user.auth_provider_id = provider_id
             user.avatar_url = avatar_url
             user.email_verified = True
+            is_new = True
         else:
+            is_new = False
             if user.provider != AuthProvider(provider):
                 # Optionally link or raise exception. The user wants existing email linking.
                 user.provider = AuthProvider(provider)
                 user.auth_provider_id = provider_id
-            
+
             if avatar_url and not user.avatar_url:
                 user.avatar_url = avatar_url
             user.email_verified = True
-            
+
         await self.session.commit()
         await self.session.refresh(user)
-        
+
+        if is_new:
+            await self.email_service.send_welcome_email(
+                to=user.email,
+                name=user.full_name,
+                login_link=f"{settings.FRONTEND_URL}/login",
+            )
+
         return await self._build_auth_response(
             user=user,
             user_agent=user_agent,
@@ -364,20 +383,15 @@ class AuthService:
         user = await self.users.get_by_email(email.lower().strip())
         if not user or user.provider != AuthProvider.EMAIL:
             return  # Fail silently for security
-            
+
         serializer = URLSafeTimedSerializer(settings.SECRET_KEY)
         token = serializer.dumps(user.email, salt="password-reset")
-        
+
         reset_link = f"{settings.FRONTEND_URL}/reset-password?token={token}"
-        
-        if settings.RESEND_API_KEY:
-            resend.api_key = settings.RESEND_API_KEY
-            resend.Emails.send({
-                "from": "BiasBuster <noreply@biasbuster.com>",
-                "to": user.email,
-                "subject": "Password Reset",
-                "html": f"<p>Click <a href='{reset_link}'>here</a> to reset your password.</p>"
-            })
+
+        await self.email_service.send_password_reset_email(
+            to=user.email, name=user.full_name, reset_link=reset_link
+        )
 
     async def reset_password(self, token: str, new_password: str) -> None:
         serializer = URLSafeTimedSerializer(settings.SECRET_KEY)
@@ -385,11 +399,11 @@ class AuthService:
             email = serializer.loads(token, salt="password-reset", max_age=3600)
         except Exception:
             raise InvalidTokenException()
-            
+
         user = await self.users.get_by_email(email)
         if not user:
             raise UserNotFoundException()
-            
+
         user.hashed_password = hash_password(new_password)
         user.last_password_change = datetime.now(timezone.utc)
         await self.session.commit()
@@ -399,31 +413,39 @@ class AuthService:
         user = await self.users.get_by_email(email.lower().strip())
         if not user or user.email_verified:
             return
-            
+
+        print("STEP 1: request_email_verification called")
+        print(f"Email: {email}")
+
         serializer = URLSafeTimedSerializer(settings.SECRET_KEY)
         token = serializer.dumps(user.email, salt="email-verify")
-        
+
         verify_link = f"{settings.FRONTEND_URL}/verify-email?token={token}"
-        
-        if settings.RESEND_API_KEY:
-            resend.api_key = settings.RESEND_API_KEY
-            resend.Emails.send({
-                "from": "BiasBuster <onboarding@resend.dev>",
-                "to": user.email,
-                "subject": "Verify Email",
-                "html": f"<p>Click <a href='{verify_link}'>here</a> to verify your email.</p>"
-            })
-            
+
+        print("STEP 2: About to call EmailService")
+
+        result = await self.email_service.send_verification_email(
+            to=user.email, name=user.full_name, verify_link=verify_link
+        )
+
+        print("STEP 3: EmailService returned:", result)
+
     async def verify_email(self, token: str) -> None:
         serializer = URLSafeTimedSerializer(settings.SECRET_KEY)
         try:
             email = serializer.loads(token, salt="email-verify", max_age=86400)
         except Exception:
             raise InvalidTokenException()
-            
+
         user = await self.users.get_by_email(email)
         if not user:
             raise UserNotFoundException()
-            
+
         user.email_verified = True
         await self.session.commit()
+
+        await self.email_service.send_welcome_email(
+            to=user.email,
+            name=user.full_name,
+            login_link=f"{settings.FRONTEND_URL}/login",
+        )

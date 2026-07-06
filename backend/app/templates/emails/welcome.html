@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to BiasBuster</title>
+    <style>
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f3f4f6; margin: 0; padding: 0; }
+        .container { max-width: 600px; margin: 40px auto; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); overflow: hidden; }
+        .header { background-color: #2563EB; padding: 40px 30px; text-align: center; color: #ffffff; }
+        .header h1 { margin: 0; font-size: 28px; font-weight: 700; margin-bottom: 10px; }
+        .header p { margin: 0; font-size: 16px; opacity: 0.9; }
+        .content { padding: 40px 30px; color: #374151; line-height: 1.6; font-size: 16px; }
+        .content h2 { color: #111827; font-size: 20px; font-weight: 600; margin-top: 0; margin-bottom: 20px; }
+        .features { margin: 30px 0; background-color: #f8fafc; border-radius: 8px; padding: 25px; border: 1px solid #e2e8f0; }
+        .features h3 { margin-top: 0; margin-bottom: 15px; font-size: 16px; color: #0f172a; }
+        .features ul { padding-left: 20px; margin: 0; }
+        .features li { margin-bottom: 10px; color: #475569; }
+        .features li:last-child { margin-bottom: 0; }
+        .cta-container { text-align: center; margin: 35px 0 10px; }
+        .btn { display: inline-block; background-color: #2563EB; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 16px; transition: background-color 0.2s; }
+        .btn:hover { background-color: #1d4ed8; }
+        .footer { background-color: #f9fafb; padding: 25px 30px; text-align: center; color: #9ca3af; font-size: 13px; border-top: 1px solid #e5e7eb; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>BiasBuster</h1>
+            <p>Fairness-Aware Machine Learning</p>
+        </div>
+        <div class="content">
+            <h2>Welcome to BiasBuster!</h2>
+            <p>Hi {{ name }},</p>
+            <p>We're thrilled to have you join our platform. BiasBuster gives you the tools you need to build fair, transparent, and robust machine learning models.</p>
+            
+            <div class="features">
+                <h3>What you can do with BiasBuster:</h3>
+                <ul>
+                    <li><strong>Bias Detection</strong>: Audit your models for disparate impact and equal opportunity metrics.</li>
+                    <li><strong>Bias Mitigation</strong>: Apply state-of-the-art algorithms to improve fairness without sacrificing accuracy.</li>
+                    <li><strong>Explainability</strong>: Understand feature importance and model decisions.</li>
+                    <li><strong>Reports</strong>: Generate comprehensive fairness reports for stakeholders.</li>
+                </ul>
+            </div>
+            
+            <div class="cta-container">
+                <a href="{{ login_link }}" class="btn">Go to Dashboard</a>
+            </div>
+        </div>
+        <div class="footer">
+            <p>If you have any questions, reply to this email to contact our support team.</p>
+            <p>&copy; 2026 BiasBuster. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

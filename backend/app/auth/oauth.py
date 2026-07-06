@@ -22,6 +22,3 @@ oauth.register(
     api_base_url="https://api.github.com/",
     client_kwargs={"scope": "read:user user:email"},
 )
-
-print("OAuth GitHub client:", oauth.github.client_id)
-print("Settings GitHub client:", settings.GITHUB_CLIENT_ID)

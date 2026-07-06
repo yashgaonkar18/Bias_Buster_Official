@@ -43,6 +43,10 @@ class Settings(BaseSettings):
     FRONTEND_URL: str = "http://localhost:3000"
     BACKEND_URL: str = "http://localhost:8000"
 
+    EMAIL_FROM: str = "BiasBuster <onboarding@resend.dev>"
+    EMAIL_REPLY_TO: str = "support@biasbuster.com"
+    EMAIL_SUPPORT: str = "support@biasbuster.com"
+
     @property
     def DATABASE_URL(self):
         return self.database_url  # allows settings.DATABASE_URL to work
