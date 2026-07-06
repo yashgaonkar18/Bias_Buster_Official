@@ -25,7 +25,4 @@ class MitigationRanking(Base):
         Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
     )
 
-    mitigation_rankings = relationship(
-        "User",
-        back_populates="refresh_tokens",
-    )
+    user = relationship("User", back_populates="mitigation_rankings")

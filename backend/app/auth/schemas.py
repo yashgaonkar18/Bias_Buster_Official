@@ -64,3 +64,25 @@ class AuthResponse(BaseModel):
 
 class LogoutAllResponse(BaseModel):
     message: str
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str = Field(
+        ...,
+        min_length=8,
+        max_length=128,
+        examples=["StrongPassword123!"],
+    )
+
+
+class VerifyEmailRequest(BaseModel):
+    token: str
+
+
+class ResendVerificationRequest(BaseModel):
+    email: EmailStr

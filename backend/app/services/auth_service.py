@@ -4,6 +4,8 @@ from datetime import datetime, timedelta, timezone
 
 from jose import JWTError
 from sqlalchemy.ext.asyncio import AsyncSession
+from itsdangerous import URLSafeTimedSerializer
+import resend
 
 from app.auth.exceptions import (
     AccountLockedException,
@@ -314,3 +316,114 @@ class AuthService:
         """
 
         return await self._get_user_from_access_token(access_token)
+
+    #### OAuth Methods
+    async def oauth_login(
+        self,
+        provider: str,
+        provider_id: str,
+        email: str,
+        full_name: str,
+        avatar_url: str | None = None,
+        user_agent: str | None = None,
+        ip_address: str | None = None,
+    ) -> AuthResponse:
+        user = await self.users.get_by_email(email.lower().strip())
+        
+        if not user:
+            user = await self.users.create(
+                full_name=full_name,
+                email=email.lower().strip(),
+                hashed_password=None,
+                provider=AuthProvider(provider),
+            )
+            user.auth_provider_id = provider_id
+            user.avatar_url = avatar_url
+            user.email_verified = True
+        else:
+            if user.provider != AuthProvider(provider):
+                # Optionally link or raise exception. The user wants existing email linking.
+                user.provider = AuthProvider(provider)
+                user.auth_provider_id = provider_id
+            
+            if avatar_url and not user.avatar_url:
+                user.avatar_url = avatar_url
+            user.email_verified = True
+            
+        await self.session.commit()
+        await self.session.refresh(user)
+        
+        return await self._build_auth_response(
+            user=user,
+            user_agent=user_agent,
+            ip_address=ip_address,
+        )
+
+    #### Password Reset
+    async def request_password_reset(self, email: str) -> None:
+        user = await self.users.get_by_email(email.lower().strip())
+        if not user or user.provider != AuthProvider.EMAIL:
+            return  # Fail silently for security
+            
+        serializer = URLSafeTimedSerializer(settings.SECRET_KEY)
+        token = serializer.dumps(user.email, salt="password-reset")
+        
+        reset_link = f"{settings.FRONTEND_URL}/reset-password?token={token}"
+        
+        if settings.RESEND_API_KEY:
+            resend.api_key = settings.RESEND_API_KEY
+            resend.Emails.send({
+                "from": "BiasBuster <noreply@biasbuster.com>",
+                "to": user.email,
+                "subject": "Password Reset",
+                "html": f"<p>Click <a href='{reset_link}'>here</a> to reset your password.</p>"
+            })
+
+    async def reset_password(self, token: str, new_password: str) -> None:
+        serializer = URLSafeTimedSerializer(settings.SECRET_KEY)
+        try:
+            email = serializer.loads(token, salt="password-reset", max_age=3600)
+        except Exception:
+            raise InvalidTokenException()
+            
+        user = await self.users.get_by_email(email)
+        if not user:
+            raise UserNotFoundException()
+            
+        user.hashed_password = hash_password(new_password)
+        user.last_password_change = datetime.now(timezone.utc)
+        await self.session.commit()
+
+    #### Email Verification
+    async def request_email_verification(self, email: str) -> None:
+        user = await self.users.get_by_email(email.lower().strip())
+        if not user or user.email_verified:
+            return
+            
+        serializer = URLSafeTimedSerializer(settings.SECRET_KEY)
+        token = serializer.dumps(user.email, salt="email-verify")
+        
+        verify_link = f"{settings.FRONTEND_URL}/verify-email?token={token}"
+        
+        if settings.RESEND_API_KEY:
+            resend.api_key = settings.RESEND_API_KEY
+            resend.Emails.send({
+                "from": "BiasBuster <onboarding@resend.dev>",
+                "to": user.email,
+                "subject": "Verify Email",
+                "html": f"<p>Click <a href='{verify_link}'>here</a> to verify your email.</p>"
+            })
+            
+    async def verify_email(self, token: str) -> None:
+        serializer = URLSafeTimedSerializer(settings.SECRET_KEY)
+        try:
+            email = serializer.loads(token, salt="email-verify", max_age=86400)
+        except Exception:
+            raise InvalidTokenException()
+            
+        user = await self.users.get_by_email(email)
+        if not user:
+            raise UserNotFoundException()
+            
+        user.email_verified = True
+        await self.session.commit()

@@ -19,7 +19,4 @@ class BiasMitigationRun(Base):
     user_id = Column(
         Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    mitigation_runs = relationship(
-        "User",
-        back_populates="refresh_tokens",
-    )
+    user = relationship("User", back_populates="mitigation_runs")

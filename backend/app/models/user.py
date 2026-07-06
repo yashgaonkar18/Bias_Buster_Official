@@ -93,3 +93,28 @@ class User(Base):
         back_populates="user",
         cascade="all, delete-orphan",
     )
+    uploads = relationship(
+        "UploadRecord",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+    corrections = relationship(
+        "CorrectionRecord",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+    optimizations = relationship(
+        "OptimizationRun",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+    models = relationship(
+        "ModelRegistry",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+    bias_audits = relationship("BiasAuditRecord", back_populates="user", cascade="all, delete-orphan")
+    mitigation_runs = relationship("BiasMitigationRun", back_populates="user", cascade="all, delete-orphan")
+    experiment_runs = relationship("ExperimentRun", back_populates="user", cascade="all, delete-orphan")
+    fairness_experiment_reports = relationship("FairnessExperimentReport", back_populates="user", cascade="all, delete-orphan")
+    mitigation_rankings = relationship("MitigationRanking", back_populates="user", cascade="all, delete-orphan")

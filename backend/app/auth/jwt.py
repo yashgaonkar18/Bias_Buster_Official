@@ -24,6 +24,7 @@ def create_access_token(
         "sub": public_id,
         "email": email,
         "type": "access",
+        "iat": datetime.now(timezone.utc),
         "exp": expire,
     }
 

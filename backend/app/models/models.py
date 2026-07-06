@@ -32,10 +32,7 @@ class UploadRecord(Base):
         Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
     )
 
-    uploads = relationship(
-        "User",
-        back_populates="refresh_tokens",
-    )
+    user = relationship("User", back_populates="uploads")
 
 
 class CorrectionRecord(Base):
@@ -77,10 +74,7 @@ class CorrectionRecord(Base):
         Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
     )
 
-    correction_records = relationship(
-        "User",
-        back_populates="refresh_tokens",
-    )
+    user = relationship("User", back_populates="corrections")
 
 
 class OptimizationRun(Base):
@@ -110,14 +104,11 @@ class OptimizationRun(Base):
         Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
     )
 
-    optimization_run = relationship(
-        "User",
-        back_populates="refresh_tokens",
-    )
+    user = relationship("User", back_populates="optimizations")
 
 
 class ModelRegistry(Base):
-    __tablename__ = "model_registry"
+    __tablename__ = "model_registery"
 
     id = Column(Integer, primary_key=True, index=True)
     model_id = Column(String, unique=True, nullable=False, index=True)  # UUID
@@ -180,7 +171,4 @@ class ModelRegistry(Base):
         Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
     )
 
-    model_registery = relationship(
-        "User",
-        back_populates="refresh_tokens",
-    )
+    user = relationship("User", back_populates="models")
