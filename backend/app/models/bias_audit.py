@@ -18,7 +18,4 @@ class BiasAuditRecord(Base):
         Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
     )
 
-    bias_audits = relationship(
-        "User",
-        back_populates="refresh_tokens",
-    )
+    user = relationship("User", back_populates="bias_audits")

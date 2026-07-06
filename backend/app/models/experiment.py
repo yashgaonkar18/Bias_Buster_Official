@@ -60,10 +60,7 @@ class ExperimentRun(Base):
         Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
     )
 
-    experiment = relationship(
-        "User",
-        back_populates="refresh_tokens",
-    )
+    user = relationship("User", back_populates="experiment_runs")
 
 
 class FairnessExperimentReport(Base):
@@ -89,7 +86,4 @@ class FairnessExperimentReport(Base):
         Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
     )
 
-    experiment = relationship(
-        "User",
-        back_populates="refresh_tokens",
-    )
+    user = relationship("User", back_populates="fairness_experiment_reports")
