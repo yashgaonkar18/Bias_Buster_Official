@@ -121,3 +121,23 @@ class ExperimentHistoryListResponse(BaseModel):
     experiments: List[ExperimentHistoryResponse] = Field(
         ..., description="List of experiments"
     )
+
+class ExperimentBase(BaseModel):
+    workspace_id: int
+    name: str = Field(..., max_length=255)
+    dataset_name: Optional[str] = Field(None, max_length=255)
+
+class ExperimentCreate(ExperimentBase):
+    pass
+
+class ExperimentUpdate(BaseModel):
+    name: Optional[str] = Field(None, max_length=255)
+    dataset_name: Optional[str] = Field(None, max_length=255)
+
+class ExperimentResponse(ExperimentBase):
+    id: int
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
