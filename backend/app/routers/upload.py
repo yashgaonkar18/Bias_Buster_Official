@@ -1,4 +1,4 @@
-from fastapi import APIRouter, UploadFile, File, Depends, HTTPException
+from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, Form
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Any
@@ -14,8 +14,18 @@ router = APIRouter(prefix="/api")
 async def upload_files(
     dataset_file: UploadFile = File(...),
     model_file: UploadFile = File(...),
+    experiment_id: int = Form(...),
     session: AsyncSession = Depends(get_session),
 ):
+    from app.auth.dependencies import get_current_user
+    from app.db import current_user_id
+    from app.repositories.experiment_repository import ExperimentRepository
+    
+    uid = current_user_id.get()
+    exp_repo = ExperimentRepository(session)
+    experiment = await exp_repo.get_by_id_for_user(experiment_id, uid)
+    if not experiment:
+        raise HTTPException(status_code=404, detail="Experiment not found")
     ds_ext = Path(dataset_file.filename).suffix.lower()
     md_ext = Path(model_file.filename).suffix.lower()
 
@@ -53,7 +63,9 @@ async def upload_files(
         dataset_columns = int(df.shape[1]),
         dataset_columns_list = df.columns.astype(str).tolist(),
         model_type = model_info["model_type"],
-        model_supports_predict_proba = bool(model_info["supports_proba"]),  # ✔ Boolean
+        model_supports_predict_proba = bool(model_info["supports_proba"]),
+        user_id = uid,
+        experiment_id = experiment_id,
     )
 
     session.add(record)

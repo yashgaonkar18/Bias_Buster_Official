@@ -11,6 +11,8 @@ from .routers.bias_mitigation import router as bias_mitigation_router
 from .routers.correction import router as correction_router
 from .routers.optimization import router as optimization_router
 from .routers.experiments import router as experiments_router
+from .routers.workspace import router as workspace_router
+from .routers.experiment import router as project_experiment_router
 from .routers.explainability import router as explainability_router
 from .routers.retraining import router as retraining_router
 from .routers.model_registry import router as model_registry_router
@@ -49,6 +51,8 @@ app.include_router(bias_mitigation_router, dependencies=protected_deps)
 app.include_router(correction_router, dependencies=protected_deps)
 app.include_router(optimization_router, dependencies=protected_deps)
 app.include_router(experiments_router, dependencies=protected_deps)
+app.include_router(workspace_router, dependencies=protected_deps)
+app.include_router(project_experiment_router, dependencies=protected_deps)
 app.include_router(explainability_router, dependencies=protected_deps)
 app.include_router(retraining_router, dependencies=protected_deps)
 app.include_router(model_registry_router, dependencies=protected_deps)

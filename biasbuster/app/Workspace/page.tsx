@@ -1051,6 +1051,107 @@ const AttributeBiasCard = ({ attribute, data }: any) => {
   );
 };
 
+const MultiSelectDropdown = ({ options, selected, onChange }: { options: string[], selected: string[], onChange: (val: string[]) => void }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const filteredOptions = options.filter(opt => opt.toLowerCase().includes(search.toLowerCase()));
+
+  const toggleOption = (option: string) => {
+    if (selected.includes(option)) {
+      onChange(selected.filter(item => item !== option));
+    } else {
+      onChange([...selected, option]);
+    }
+  };
+
+  const removeOption = (option: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    onChange(selected.filter(item => item !== option));
+  };
+
+  return (
+    <div className="relative w-full" ref={dropdownRef}>
+      <div
+        className="min-h-[42px] w-full px-3 py-2 border border-gray-300 rounded text-sm bg-white cursor-pointer flex flex-wrap items-center gap-2"
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        {selected.length > 0 ? (
+          selected.map((item) => (
+            <span
+              key={item}
+              className="flex items-center gap-1 bg-gray-100 border border-gray-200 text-gray-800 px-2 py-1 rounded text-xs"
+            >
+              {item}
+              <button
+                type="button"
+                className="hover:text-red-500 focus:outline-none"
+                onClick={(e) => removeOption(item, e)}
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </span>
+          ))
+        ) : (
+          <span className="text-gray-500">Select sensitive attributes...</span>
+        )}
+      </div>
+
+      {isOpen && (
+        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded shadow-lg max-h-60 flex flex-col">
+          <div className="p-2 border-b border-gray-100">
+            <div className="relative">
+              <Search className="absolute left-2 top-2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                className="w-full pl-8 pr-3 py-1.5 border border-gray-200 rounded text-sm focus:outline-none focus:border-blue-500"
+                placeholder="Search attributes..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>
+          </div>
+          <div className="overflow-y-auto p-1">
+            {filteredOptions.length > 0 ? (
+              filteredOptions.map((option) => (
+                <label
+                  key={option}
+                  className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 rounded cursor-pointer text-sm"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <input
+                    type="checkbox"
+                    className="rounded border-gray-300"
+                    checked={selected.includes(option)}
+                    onChange={() => toggleOption(option)}
+                  />
+                  {option}
+                </label>
+              ))
+            ) : (
+              <div className="px-3 py-2 text-sm text-gray-500 text-center">
+                No attributes found
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 export default function BiasBuster() {
   const [activeRequest, setActiveRequest] = useState("dataset-test-1");
   const [requestMethod, setRequestMethod] = useState("VALIDATE");
@@ -1150,7 +1251,7 @@ export default function BiasBuster() {
       setColumns(res.data.dataset_info.column_names);
 
       setSelectedTarget(null);
-      setSelectedSensitive([]);
+      setSelectedSensitiveColumns([]);
 
       setCurrentPhase("VALIDATED");
       setIsDatasetValid(true);
@@ -1191,7 +1292,7 @@ export default function BiasBuster() {
   const [modelFile, setModelFile] = useState<File | null>(null);
   const [dataset, setDataset] = useState<DatasetRow[]>([]);
   const [columns, setColumns] = useState<string[]>([]);
-  const [selectedSensitive, setSelectedSensitive] = useState<string[]>([]);
+  const [selectedSensitiveColumns, setSelectedSensitiveColumns] = useState<string[]>([]);
   const [selectedTarget, setSelectedTarget] = useState<string | null>(null);
   const [validationResults, setValidationResults] = useState<string[]>([]);
   const [preprocessedDataset, setPreprocessedDataset] = useState<
@@ -1256,7 +1357,7 @@ export default function BiasBuster() {
       const res = await api.post(`/api/optimize`, {
         upload_id: uploadId,
         target_column: selectedTarget,
-        sensitive_columns: selectedSensitive,
+        sensitive_columns: selectedSensitiveColumns,
         method: optMethod,
         n_trials: optTrials,
         cv_folds: optCV,
@@ -1280,7 +1381,7 @@ export default function BiasBuster() {
       const res = await api.post(`/api/bias/mitigate`, {
         upload_id: uploadId,
         target_column: selectedTarget,
-        sensitive_columns: selectedSensitive,
+        sensitive_columns: selectedSensitiveColumns,
         strategy_name: strategy,
         confirm_recommendation: true,
       });
@@ -1358,7 +1459,7 @@ export default function BiasBuster() {
         return;
       }
 
-      if (!selectedTarget || selectedSensitive.length === 0) {
+      if (!selectedTarget || selectedSensitiveColumns.length === 0) {
         alert("Please select target and sensitive attributes");
         return;
       }
@@ -1371,7 +1472,7 @@ export default function BiasBuster() {
         const res = await api.post("/api/bias/detect", {
           upload_id: uploadId, // ⚠️ NUMBER
           target_column: selectedTarget,
-          sensitive_columns: selectedSensitive,
+          sensitive_columns: selectedSensitiveColumns,
         });
         setProcessingStep(null);
         setBiasResults(res.data);
@@ -1433,7 +1534,7 @@ export default function BiasBuster() {
     };
   }, [showProfile]);
 
-  const attributesSelected = selectedSensitive.length > 0 && !!selectedTarget;
+  const attributesSelected = selectedSensitiveColumns.length > 0 && !!selectedTarget;
 
   useEffect(() => {
     if (attributesSelected && currentPhase === "VALIDATED") {
@@ -1874,39 +1975,17 @@ export default function BiasBuster() {
               Sensitive Attributes
             </label>
 
-            <div className="grid grid-cols-2 gap-2">
-              {columns.map((col) => (
-                <label
-                  key={col}
-                  className="flex items-center gap-2 text-sm border rounded px-3 py-2 cursor-pointer"
-                >
-                  <input
-                    type="checkbox"
-                    checked={selectedSensitive.includes(col)}
-                    disabled={
-                      !selectedSensitive.includes(col) &&
-                      selectedSensitive.length >= 2
-                    }
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        if (selectedSensitive.length >= 2) return;
-                        setSelectedSensitive((prev) => [...prev, col]);
-                      } else {
-                        setSelectedSensitive((prev) =>
-                          prev.filter((c) => c !== col),
-                        );
-                      }
-                    }}
-                  />
+            <MultiSelectDropdown
+              options={columns}
+              selected={selectedSensitiveColumns}
+              onChange={setSelectedSensitiveColumns}
+            />
 
-                  {col}
-                </label>
-              ))}
-            </div>
-
-            <div className="text-xs text-gray-500 mt-1">
-              Hold Ctrl / Cmd to select multiple sensitive attributes
-            </div>
+            {selectedSensitiveColumns.length === 0 && (
+              <div className="text-xs text-red-500 mt-2">
+                Please select at least one sensitive attribute.
+              </div>
+            )}
           </div>
 
           {/* Helper */}
@@ -2205,7 +2284,7 @@ export default function BiasBuster() {
                     const rec = await api.post(`/api/bias/recommend-strategy`, {
                       upload_id: uploadId,
                       target_column: selectedTarget,
-                      sensitive_columns: selectedSensitive,
+                      sensitive_columns: selectedSensitiveColumns,
                     });
                     setProcessingStep(null);
                     setRecommendationResult(rec.data);

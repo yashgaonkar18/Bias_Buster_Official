@@ -3,6 +3,7 @@ import numpy as np
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Any, Dict, List, Tuple
+from pathlib import Path
 
 from app.schemas.bias import BiasDetectRequest
 from app.models.models import UploadRecord

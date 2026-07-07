@@ -128,3 +128,4 @@ class User(Base):
     experiment_runs = relationship("ExperimentRun", back_populates="user", cascade="all, delete-orphan")
     fairness_experiment_reports = relationship("FairnessExperimentReport", back_populates="user", cascade="all, delete-orphan")
     mitigation_rankings = relationship("MitigationRanking", back_populates="user", cascade="all, delete-orphan")
+    workspaces = relationship("Workspace", back_populates="user", cascade="all, delete-orphan")

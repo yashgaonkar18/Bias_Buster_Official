@@ -185,7 +185,7 @@ export const interpretFairnessScore = (
 };
 
 export const interpretImprovement = (
-  metricType: "accuracy" | "fairness" | "bias",
+  metricType: "accuracy" | "fairness" | "bias" | "dir",
   before: number,
   after: number,
 ): { label: string; color: string } => {

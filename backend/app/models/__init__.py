@@ -16,7 +16,8 @@ from .bias_mitigation import BiasMitigationRun
 
 from .mitigation_ranking import MitigationRanking
 
-from .experiment import (ExperimentRun, FairnessExperimentReport)
+from .experiment import (ExperimentRun, FairnessExperimentReport, Experiment)
+from .workspace import Workspace
 
 # authentication
 from .user import User, AuthProvider
@@ -40,8 +41,10 @@ __all__ = [
     "MitigationRanking",
     "ExperimentRun",
     "FairnessExperimentReport",
+    "Experiment",
+    "Workspace",
     "User",
-    "AuthProvider"
+    "AuthProvider",
     "RefreshToken",
 ]
 

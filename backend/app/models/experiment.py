@@ -87,3 +87,16 @@ class FairnessExperimentReport(Base):
     )
 
     user = relationship("User", back_populates="fairness_experiment_reports")
+class Experiment(Base):
+    __tablename__ = "experiments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    workspace_id = Column(Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True)
+    name = Column(String(255), nullable=False)
+    dataset_name = Column(String(255), nullable=True)
+    
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    workspace = relationship("Workspace", back_populates="experiments")
+    uploads = relationship("UploadRecord", back_populates="experiment", cascade="all, delete-orphan")
