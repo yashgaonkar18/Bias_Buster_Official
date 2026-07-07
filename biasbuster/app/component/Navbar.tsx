@@ -1,7 +1,8 @@
 "use client";
-import { useEffect, useState } from "react";
-import { useRouter,usePathname } from "next/navigation";
+import { useEffect, useState, useCallback } from "react";
+import { useRouter, usePathname } from "next/navigation";
 import { logout } from "@/lib/auth";
+import { AUTH_CHANGED_EVENT } from "@/lib/auth-events";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Brain, Menu, ChevronRight } from "lucide-react";
@@ -14,10 +15,26 @@ export function Navbar() {
 
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  useEffect(() => {
+  const checkAuth = useCallback(() => {
     const token = localStorage.getItem("access_token");
     setIsAuthenticated(!!token);
-}, [pathname]);
+  }, []);
+
+  useEffect(() => {
+    checkAuth();
+  }, [pathname, checkAuth]);
+
+  useEffect(() => {
+    // Fires when the OAuth callback page (or login/logout) stores/clears
+    // tokens in the same tab. "storage" only fires across other tabs, so
+    // we dispatch our own event for same-tab updates.
+    window.addEventListener(AUTH_CHANGED_EVENT, checkAuth);
+    window.addEventListener("storage", checkAuth);
+    return () => {
+      window.removeEventListener(AUTH_CHANGED_EVENT, checkAuth);
+      window.removeEventListener("storage", checkAuth);
+    };
+  }, [checkAuth]);
 
   const handleLogout = async () => {
     try {
@@ -34,6 +51,7 @@ export function Navbar() {
     localStorage.removeItem("refresh_token");
     localStorage.removeItem("user");
 
+    window.dispatchEvent(new Event(AUTH_CHANGED_EVENT));
     setIsAuthenticated(false);
 
     router.push("/");

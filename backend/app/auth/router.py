@@ -177,7 +177,7 @@ async def google_callback(
     )
 
     return RedirectResponse(
-        url=f"http://localhost:3000/?access_token={auth.access_token}&refresh_token={auth.refresh_token}"
+        url=f"http://localhost:3000/auth/callback?access_token={auth.access_token}&refresh_token={auth.refresh_token}"
     )
 
 @router.get("/github/login")
@@ -214,7 +214,7 @@ async def github_callback(
     )
 
     return RedirectResponse(
-        url=f"http://localhost:3000/?access_token={auth.access_token}&refresh_token={auth.refresh_token}"
+        url=f"http://localhost:3000/auth/callback?access_token={auth.access_token}&refresh_token={auth.refresh_token}"
     )
 @router.post("/forgot-password", response_model=MessageResponse)
 async def forgot_password(payload: ForgotPasswordRequest, service: AuthService = Depends(get_auth_service)):

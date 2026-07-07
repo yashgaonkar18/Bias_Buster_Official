@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { useState, FormEvent, Suspense } from "react";
 import { useSearchParams ,useRouter } from "next/navigation";
 import Link from "next/link";
 import { login, signup, googleLogin, githubLogin } from "@/lib/auth";
@@ -9,7 +9,7 @@ type Mode = "login" | "signup";
 
 
 
-export default function AuthPage() {
+function AuthPageContent() {
     const searchParams = useSearchParams();
     const initialMode = searchParams.get("mode") === "signup" ? "signup" : "login";
     const [mode, setMode] = useState<Mode>(initialMode);
@@ -350,5 +350,17 @@ function GoogleIcon() {
             <path fill="#FBBC05" d="M5.4 14.4c-.2-.7-.4-1.4-.4-2.4s.1-1.7.4-2.4V6.6H1.4C.5 8.3 0 10.1 0 12s.5 3.7 1.4 5.4l4-3z" />
             <path fill="#EA4335" d="M12 4.8c1.8 0 3.3.6 4.6 1.8l3.4-3.4C17.9 1.2 15.2 0 12 0 7.4 0 3.4 2.7 1.4 6.6l4 3C6.3 6.9 8.9 4.8 12 4.8z" />
         </svg>
+    );
+}
+
+export default function AuthPage() {
+    return (
+        <Suspense fallback={
+            <main className="min-h-screen flex items-center justify-center bg-slate-100 p-4 md:p-6">
+                <div className="text-slate-600 font-mono">Loading authentication...</div>
+            </main>
+        }>
+            <AuthPageContent />
+        </Suspense>
     );
 }

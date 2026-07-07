@@ -8,9 +8,9 @@ import { Footer } from "./component/Footer";
 import Faq from "./component/Faq";
 import { ProductionReady } from "./component/Production";
 
-import { useEffect } from "react";
+import { useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-export default function HomePage() {
+function HomePageContent() {
   const params = useSearchParams();
 
   useEffect(() => {
@@ -40,5 +40,17 @@ export default function HomePage() {
 
 
     </div>
+  );
+}
+
+export default function HomePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-background text-foreground font-mono">
+        Loading BiasBuster...
+      </div>
+    }>
+      <HomePageContent />
+    </Suspense>
   );
 }
