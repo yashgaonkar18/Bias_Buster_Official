@@ -404,6 +404,12 @@ async def run_model_optimization(
                     "combined_score": trial.get("combined_score", 0.0),
                     "dpd": trial.get("dpd"),
                     "eod": trial.get("eod"),
+                    # Include DIR (disparate impact ratio). Accept both 'dir' and legacy 'di'.
+                    "dir": (
+                        trial.get("dir")
+                        if trial.get("dir") is not None
+                        else trial.get("di")
+                    ),
                 }
                 for trial in result.get("comparison", [])
             ],

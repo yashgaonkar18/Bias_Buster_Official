@@ -10,7 +10,6 @@ import {
   Settings,
   Folder,
   ChevronDown,
-  ChevronRight,
   BarChart3,
   FileText,
   Clock,
@@ -19,6 +18,7 @@ import {
 } from "lucide-react";
 import { WorkspaceProvider, useWorkspace } from "./WorkspaceContext";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 function WorkspaceLayoutInner({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -35,7 +35,6 @@ function WorkspaceLayoutInner({ children }: { children: React.ReactNode }) {
     applyOptimization,
     fetchComparison,
     selectedStrategy,
-    optMethod,
   } = useWorkspace();
 
   const [showProfile, setShowProfile] = useState(false);
@@ -99,9 +98,9 @@ function WorkspaceLayoutInner({ children }: { children: React.ReactNode }) {
             <div className="size-8 flex items-center justify-center">
               <Brain className="size-8 stroke-[2.5] text-orange-500" />
             </div>
-            <span className="font-display text-xl tracking-wider text-foreground uppercase">
+            <Link href="/" className="font-display text-xl tracking-wider text-foreground uppercase">
               BiasBuster
-            </span>
+            </Link>
           </div>
           <button className="p-1.5 hover:bg-gray-100 rounded">
             <MoreVertical className="w-4 h-4 text-gray-600" />

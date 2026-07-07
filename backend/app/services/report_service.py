@@ -15,6 +15,7 @@ import io
 import tempfile
 from pathlib import Path as _Path
 
+# Try to import ReportLab; if unavailable we'll fall back to the existing matplotlib PDF layout.
 try:
     from reportlab.lib.pagesizes import A4
     from reportlab.lib import colors
@@ -263,7 +264,6 @@ def _render_pdf_reportlab(report_payload: Dict[str, Any], pdf_path: _Path) -> No
 
         story.append(Paragraph("<b>Model Comparison</b>", heading))
         story.append(Spacer(1, 6))
-
         rows = [["Model", "Accuracy", "Fairness", "DPD", "EOD", "DIR", "Combined"]]
         for m in report_payload.get("comparison_models", []):
             rows.append(
@@ -388,7 +388,6 @@ def _save_before_after_chart(report_payload: Dict[str, Any], out_path: str) -> N
         [i + width / 2 for i in x], after_vals, width, label="After", color="#2563EB"
     )
     ax.set_xticks(list(x))
-
     ax.set_xticklabels(labels)
     ax.set_ylabel("Value")
     ax.set_title("Before vs After Fairness Metrics")
@@ -440,9 +439,8 @@ def _render_pdf(report_payload: Dict[str, Any], pdf_path: Path) -> None:
             ax.text(0.06, y, line, fontsize=10, va="top")
             y -= 0.028
 
-        section_flags_str = ", ".join([name for name, enabled in report_payload.get('section_flags', {}).items() if enabled]) or 'none'
         section_lines = [
-            f"Sections: {section_flags_str}",
+            f"Sections: {', '.join([name for name, enabled in report_payload.get('section_flags', {}).items() if enabled]) or 'none'}",
             f"Generated at: {report_payload.get('generated_at', '')}",
         ]
         y -= 0.02
@@ -662,8 +660,8 @@ async def generate_fairness_experiment_report(
         },
         "summary": (
             f"{title} summarizes the current fairness state for upload {upload.id}. "
-            f"Accuracy changed by {accuracy_gain:+.3f} and fairness score changed by {fairness_gain:+.3f}."
-            f" {interpretation_summary}"
+            f"Accuracy changed by {accuracy_gain:+.3f} and fairness score changed by {fairness_gain:+.3f}. "
+            f"{interpretation_summary}"
         ),
         "interpretation": {
             "summary": interpretation_summary,

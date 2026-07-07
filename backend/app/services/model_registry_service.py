@@ -8,6 +8,7 @@ from app.models.models import (
     CorrectionRecord,
     OptimizationRun,
 )
+from app.models.bias_mitigation import BiasMitigationRun
 from app.schemas.model_registry import (
     RegisterModelRequest,
     ModelRegistryEntry,
@@ -175,6 +176,18 @@ class ModelRegistryService:
             .all()
         )
 
+        mitigation_runs = (
+            (
+                await session.execute(
+                    select(BiasMitigationRun)
+                    .where(BiasMitigationRun.upload_id == upload_id)
+                    .order_by(BiasMitigationRun.created_at.desc())
+                )
+            )
+            .scalars()
+            .all()
+        )
+
         comparison_items: List[ModelComparisonItem] = []
         seen_keys: set[str] = set()
 
@@ -214,9 +227,17 @@ class ModelRegistryService:
                 key=f"registry:{model.model_id}",
             )
 
-        if upload and not any(
+        has_original_registry = any(
             item.source_type == "original" for item in comparison_items
-        ):
+        )
+        has_mitigated_registry = any(
+            item.source_type == "mitigated" for item in comparison_items
+        )
+        has_optimized_registry = any(
+            item.source_type == "optimized" for item in comparison_items
+        )
+
+        if upload and not has_original_registry:
             original_metrics: Optional[Dict[str, Any]] = None
             original_model_name = (
                 upload.original_model_filename or upload.model_filename
@@ -229,21 +250,18 @@ class ModelRegistryService:
                 original_metrics = optimizations[0].metrics_before or {}
 
             if original_metrics:
-                # Handle nested structure from evaluate_model_fairness (e.g., in optimizations)
-                if "performance" in original_metrics and "fairness" in original_metrics:
-                    original_accuracy = original_metrics["performance"].get("accuracy", 0)
-                    original_fairness = original_metrics["fairness"]["aggregate"].get("fairness_score", 0)
-                    original_dpd = original_metrics["fairness"]["aggregate"].get("dpd")
-                    original_eod = original_metrics["fairness"]["aggregate"].get("eod")
-                    original_dir = original_metrics["fairness"]["aggregate"].get("dir")
-                else:
-                    # Legacy flat structure (e.g., some old corrections)
-                    original_accuracy = original_metrics.get("accuracy", 0)
-                    original_fairness = original_metrics.get("fairness_score", 0)
-                    original_dpd = original_metrics.get("dpd")
-                    original_eod = original_metrics.get("eod")
-                    original_dir = original_metrics.get("dir")
-
+                original_accuracy = ModelRegistryService._extract_metric(
+                    original_metrics, "accuracy", 0.0
+                )
+                original_fairness = ModelRegistryService._extract_metric(
+                    original_metrics, "fairness_score", 0.0
+                )
+                original_dpd = ModelRegistryService._extract_metric(
+                    original_metrics, "dpd", None
+                )
+                original_eod = ModelRegistryService._extract_metric(
+                    original_metrics, "eod", None
+                )
                 add_item(
                     ModelComparisonItem(
                         model_id=f"upload-{upload_id}-original",
@@ -257,7 +275,9 @@ class ModelRegistryService:
                         + (0.4 * original_accuracy),
                         dpd=original_dpd,
                         eod=original_eod,
-                        dir=original_dir,
+                        dir=ModelRegistryService._extract_metric(
+                            original_metrics, "dir", None
+                        ),
                         bias_severity=ModelRegistryService._bias_severity_label(
                             original_dpd,
                             original_eod,
@@ -272,127 +292,176 @@ class ModelRegistryService:
                     key="synthetic:original",
                 )
 
-        for correction in corrections:
-            raw_metrics_after = correction.metrics_after or {}
-            if "performance" in raw_metrics_after and "fairness" in raw_metrics_after:
-                corr_accuracy = raw_metrics_after["performance"].get("accuracy", 0)
-                corr_fairness = raw_metrics_after["fairness"]["aggregate"].get("fairness_score", 0)
-                corr_dpd = raw_metrics_after["fairness"]["aggregate"].get("dpd")
-                corr_eod = raw_metrics_after["fairness"]["aggregate"].get("eod")
-                corr_dir = raw_metrics_after["fairness"]["aggregate"].get("dir")
-            else:
-                corr_accuracy = raw_metrics_after.get("accuracy", 0)
-                corr_fairness = raw_metrics_after.get("fairness_score", 0)
-                corr_dpd = raw_metrics_after.get("dpd")
-                corr_eod = raw_metrics_after.get("eod")
-                corr_dir = raw_metrics_after.get("dir")
+        if not has_mitigated_registry:
+            for correction in corrections:
+                metrics_after = correction.metrics_after or {}
+                model_name = f"{(upload.original_model_filename or upload.model_filename or 'model.joblib').rsplit('.', 1)[0]}_{correction.strategy}_mitigated_model"
+                correction_accuracy = ModelRegistryService._extract_metric(
+                    metrics_after, "accuracy", 0.0
+                )
+                correction_fairness = ModelRegistryService._extract_metric(
+                    metrics_after, "fairness_score", 0.0
+                )
+                correction_dpd = ModelRegistryService._extract_metric(
+                    metrics_after, "dpd", None
+                )
+                correction_eod = ModelRegistryService._extract_metric(
+                    metrics_after, "eod", None
+                )
+                correction_dir = ModelRegistryService._extract_metric(
+                    metrics_after, "dir", None
+                )
+                combined_score = (0.6 * correction_fairness) + (
+                    0.4 * correction_accuracy
+                )
+                add_item(
+                    ModelComparisonItem(
+                        model_id=correction.correction_id,
+                        model_name=model_name,
+                        model_type=upload.model_type if upload else "Model",
+                        source_type="mitigated",
+                        version=f"v1_{correction.strategy}",
+                        accuracy=correction_accuracy,
+                        fairness_score=correction_fairness,
+                        combined_score=combined_score,
+                        dpd=correction_dpd,
+                        eod=correction_eod,
+                        dir=correction_dir,
+                        bias_severity=ModelRegistryService._bias_severity_label(
+                            correction_dpd,
+                            correction_eod,
+                            correction_fairness,
+                        ),
+                        recommendation_status=(
+                            "recommended"
+                            if correction.status == "success"
+                            else correction.status
+                        ),
+                        download_url=f"/api/correction/download-model/{correction.correction_id}",
+                        dataset_download_url=(
+                            f"/api/correction/download-dataset/{correction.correction_id}"
+                            if correction.dataset_export_path
+                            and correction.strategy in ["reweighting", "smote"]
+                            else None
+                        ),
+                        artifact_name=(
+                            cleanup_download_filename(
+                                correction.model_export_path.split("/")[-1]
+                            )
+                            if correction.model_export_path
+                            else None
+                        ),
+                        summary=correction.summary,
+                        is_recommended=False,
+                    ),
+                    key=f"correction:{correction.correction_id}",
+                )
 
-            model_name = f"{(upload.original_model_filename or upload.model_filename or 'model.joblib').rsplit('.', 1)[0]}_{correction.strategy}_mitigated_model"
-            combined_score = (0.6 * corr_fairness) + (0.4 * corr_accuracy)
-            
-            add_item(
-                ModelComparisonItem(
-                    model_id=correction.correction_id,
-                    model_name=model_name,
-                    model_type=upload.model_type if upload else "Model",
-                    source_type="mitigated",
-                    version=f"v1_{correction.strategy}",
-                    accuracy=corr_accuracy,
-                    fairness_score=corr_fairness,
-                    combined_score=combined_score,
-                    dpd=corr_dpd,
-                    eod=corr_eod,
-                    dir=corr_dir,
-                    bias_severity=ModelRegistryService._bias_severity_label(
-                        corr_dpd,
-                        corr_eod,
-                        corr_fairness,
+        if not has_mitigated_registry and not corrections:
+            for mitigation in mitigation_runs:
+                strategy = mitigation.strategy_used or "mitigation"
+                add_item(
+                    ModelComparisonItem(
+                        model_id=f"mitigation-run-{mitigation.id}",
+                        model_name=f"{(upload.original_model_filename or upload.model_filename or 'model.joblib').rsplit('.', 1)[0]}_{strategy}_mitigated_model",
+                        model_type=upload.model_type if upload else "Model",
+                        source_type="mitigated",
+                        version=f"v1_{strategy}",
+                        accuracy=0.0,
+                        fairness_score=0.0,
+                        combined_score=0.0,
+                        dpd=None,
+                        eod=None,
+                        dir=None,
+                        bias_severity="Medium",
+                        recommendation_status=strategy,
+                        download_url=(
+                            f"/api/bias/mitigate/download-model/{upload_id}?strategy={strategy}"
+                            if mitigation.artifact_model_path
+                            else None
+                        ),
+                        dataset_download_url=(
+                            f"/api/bias/mitigate/download-dataset/{upload_id}?strategy={strategy}"
+                            if mitigation.artifact_dataset_path
+                            else None
+                        ),
+                        artifact_name=(
+                            cleanup_download_filename(
+                                mitigation.artifact_model_path.split("/")[-1]
+                            )
+                            if mitigation.artifact_model_path
+                            else None
+                        ),
+                        summary=f"Mitigation strategy applied: {strategy}",
+                        is_recommended=False,
                     ),
-                    recommendation_status=(
-                        "recommended"
-                        if correction.status == "success"
-                        else correction.status
-                    ),
-                    download_url=f"/api/correction/download-model/{correction.correction_id}",
-                    dataset_download_url=(
-                        f"/api/correction/download-dataset/{correction.correction_id}"
-                        if correction.dataset_export_path
-                        and correction.strategy in ["reweighting", "smote"]
-                        else None
-                    ),
-                    artifact_name=(
-                        cleanup_download_filename(
-                            correction.model_export_path.split("/")[-1]
-                        )
-                        if correction.model_export_path
-                        else None
-                    ),
-                    summary=correction.summary,
-                    is_recommended=False,
-                ),
-                key=f"correction:{correction.correction_id}",
-            )
+                    key=f"mitigation-run:{mitigation.id}",
+                )
 
-        for optimization in optimizations:
-            raw_metrics_after = optimization.metrics_after or {}
-            if "performance" in raw_metrics_after and "fairness" in raw_metrics_after:
-                opt_accuracy = raw_metrics_after["performance"].get("accuracy", 0)
-                opt_fairness = raw_metrics_after["fairness"]["aggregate"].get("fairness_score", 0)
-                opt_dpd = raw_metrics_after["fairness"]["aggregate"].get("dpd")
-                opt_eod = raw_metrics_after["fairness"]["aggregate"].get("eod")
-                opt_dir = raw_metrics_after["fairness"]["aggregate"].get("dir")
-            else:
-                opt_accuracy = raw_metrics_after.get("accuracy", 0)
-                opt_fairness = raw_metrics_after.get("fairness_score", 0)
-                opt_dpd = raw_metrics_after.get("dpd")
-                opt_eod = raw_metrics_after.get("eod")
-                opt_dir = raw_metrics_after.get("dir")
-
-            model_name = f"{(upload.original_model_filename or upload.model_filename or 'model.joblib').rsplit('.', 1)[0]}_{optimization.optimization_method}_optimized_model"
-            combined_score = (0.6 * opt_fairness) + (0.4 * opt_accuracy)
-
-            add_item(
-                ModelComparisonItem(
-                    model_id=optimization.optimization_id,
-                    model_name=model_name,
-                    model_type=upload.model_type if upload else "Model",
-                    source_type="optimized",
-                    version=f"v1_{optimization.optimization_method}",
-                    accuracy=opt_accuracy,
-                    fairness_score=opt_fairness,
-                    combined_score=combined_score,
-                    dpd=opt_dpd,
-                    eod=opt_eod,
-                    dir=opt_dir,
-                    bias_severity=ModelRegistryService._bias_severity_label(
-                        opt_dpd,
-                        opt_eod,
-                        opt_fairness,
+        if not has_optimized_registry:
+            for optimization in optimizations:
+                metrics_after = optimization.metrics_after or {}
+                model_name = f"{(upload.original_model_filename or upload.model_filename or 'model.joblib').rsplit('.', 1)[0]}_{optimization.optimization_method}_optimized_model"
+                optimization_accuracy = ModelRegistryService._extract_metric(
+                    metrics_after, "accuracy", 0.0
+                )
+                optimization_fairness = ModelRegistryService._extract_metric(
+                    metrics_after, "fairness_score", 0.0
+                )
+                optimization_dpd = ModelRegistryService._extract_metric(
+                    metrics_after, "dpd", None
+                )
+                optimization_eod = ModelRegistryService._extract_metric(
+                    metrics_after, "eod", None
+                )
+                optimization_dir = ModelRegistryService._extract_metric(
+                    metrics_after, "dir", None
+                )
+                combined_score = (0.6 * optimization_fairness) + (
+                    0.4 * optimization_accuracy
+                )
+                add_item(
+                    ModelComparisonItem(
+                        model_id=optimization.optimization_id,
+                        model_name=model_name,
+                        model_type=upload.model_type if upload else "Model",
+                        source_type="optimized",
+                        version=f"v1_{optimization.optimization_method}",
+                        accuracy=optimization_accuracy,
+                        fairness_score=optimization_fairness,
+                        combined_score=combined_score,
+                        dpd=optimization_dpd,
+                        eod=optimization_eod,
+                        dir=optimization_dir,
+                        bias_severity=ModelRegistryService._bias_severity_label(
+                            optimization_dpd,
+                            optimization_eod,
+                            optimization_fairness,
+                        ),
+                        recommendation_status=(
+                            "recommended"
+                            if optimization.status == "success"
+                            else optimization.status
+                        ),
+                        download_url=(
+                            f"/api/optimize/download/{optimization.optimization_id}"
+                            if optimization.artifact_path
+                            else None
+                        ),
+                        dataset_download_url=None,
+                        artifact_name=(
+                            cleanup_download_filename(
+                                optimization.artifact_path.split("/")[-1]
+                            )
+                            if optimization.artifact_path
+                            else None
+                        ),
+                        summary=optimization.error_message
+                        or f"Optimization method: {optimization.optimization_method}",
+                        is_recommended=False,
                     ),
-                    recommendation_status=(
-                        "recommended"
-                        if optimization.status == "success"
-                        else optimization.status
-                    ),
-                    download_url=(
-                        f"/api/optimize/download/{optimization.optimization_id}"
-                        if optimization.artifact_path
-                        else None
-                    ),
-                    dataset_download_url=None,
-                    artifact_name=(
-                        cleanup_download_filename(
-                            optimization.artifact_path.split("/")[-1]
-                        )
-                        if optimization.artifact_path
-                        else None
-                    ),
-                    summary=optimization.error_message
-                    or f"Optimization method: {optimization.optimization_method}",
-                    is_recommended=False,
-                ),
-                key=f"optimization:{optimization.optimization_id}",
-            )
+                    key=f"optimization:{optimization.optimization_id}",
+                )
 
         if not comparison_items:
             return None
@@ -818,6 +887,40 @@ class ModelRegistryService:
         if dpd_value >= 0.1 or eod_value >= 0.1 or fairness_score < 0.8:
             return "Medium"
         return "Low"
+
+    @staticmethod
+    def _extract_metric(
+        metrics: Optional[Dict[str, Any]],
+        metric: str,
+        default: Optional[float],
+    ) -> Optional[float]:
+        if not isinstance(metrics, dict):
+            return default
+
+        direct = metrics.get(metric)
+        if isinstance(direct, (int, float)):
+            return float(direct)
+
+        performance = metrics.get("performance")
+        fairness = metrics.get("fairness")
+        aggregate = fairness.get("aggregate") if isinstance(fairness, dict) else None
+
+        if metric == "accuracy" and isinstance(performance, dict):
+            value = performance.get("accuracy")
+            if isinstance(value, (int, float)):
+                return float(value)
+
+        if metric in {"fairness_score", "dpd", "eod", "dir"}:
+            if isinstance(aggregate, dict):
+                value = aggregate.get(metric)
+                if isinstance(value, (int, float)):
+                    return float(value)
+            if isinstance(fairness, dict):
+                value = fairness.get(metric)
+                if isinstance(value, (int, float)):
+                    return float(value)
+
+        return default
 
     @staticmethod
     async def _build_lineage_tree(

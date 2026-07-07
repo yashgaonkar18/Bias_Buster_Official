@@ -1,15 +1,45 @@
 "use client";
+import { useEffect, useState } from "react";
+import { useRouter,usePathname } from "next/navigation";
+import { logout } from "@/lib/auth";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Brain, Menu, ChevronRight } from "lucide-react";
-import { useState } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 export function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const router = useRouter();
+  const pathname = usePathname();
+
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    const token = localStorage.getItem("access_token");
+    setIsAuthenticated(!!token);
+}, [pathname]);
+
+  const handleLogout = async () => {
+    try {
+      const refresh = localStorage.getItem("refresh_token");
+
+      if (refresh) {
+        await logout(refresh);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("refresh_token");
+    localStorage.removeItem("user");
+
+    setIsAuthenticated(false);
+
+    router.push("/");
+  };
 
   const navItems = [
-    // { label: "Pricing", href: "#pricing" },
     { label: "Docs", href: "#docs" },
     { label: "Blog", href: "#blog" },
     { label: "Tutorials", href: "#tutorials" },
@@ -46,14 +76,45 @@ export function Navbar() {
 
         {/* Right: Actions */}
         <div className="hidden md:flex items-center gap-6 font-jetbrains text-xs font-bold uppercase tracking-wide">
-          <a href="#" className="flex items-center gap-1 hover:text-muted-foreground transition-colors">
-            <ChevronRight className="size-3" />
-            Login
-          </a>
-          <Button size="sm" className="h-9 px-5 rounded-sm bg-foreground text-background hover:bg-foreground/90 font-bold tracking-wider">
-            <ChevronRight className="size-3 mr-1" />
-            Sign Up
-          </Button>
+          {isAuthenticated ? (
+            <>
+              <Link
+                href="/profile"
+                className="hover:text-muted-foreground transition-colors"
+              >
+                Profile
+              </Link>
+
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleLogout}
+              >
+                Logout
+              </Button>
+            </>
+          ) : (
+            <>
+              <Link
+                href="/authentication"
+                className="flex items-center gap-1 hover:text-muted-foreground transition-colors"
+              >
+                <ChevronRight className="size-3" />
+                Login
+              </Link>
+
+              <Button
+                asChild
+                size="sm"
+                className="h-9 px-5 rounded-sm bg-foreground text-background hover:bg-foreground/90 font-bold tracking-wider"
+              >
+                <Link href="/authentication?mode=signup">
+                  <ChevronRight className="size-3 mr-1" />
+                  Sign Up
+                </Link>
+              </Button>
+            </>
+          )}
         </div>
 
         {/* Mobile Nav Toggle */}
@@ -77,14 +138,62 @@ export function Navbar() {
                   </Link>
                 ))}
                 <div className="flex flex-col gap-3 mt-4 pt-4 border-t border-border">
-                  <Button variant="outline" className="w-full justify-start font-bold rounded-none border-2">
-                    <ChevronRight className="size-4 mr-2" />
-                    Login
-                  </Button>
-                  <Button className="w-full justify-start font-bold rounded-none bg-foreground text-background hover:bg-foreground/90">
-                    <ChevronRight className="size-4 mr-2" />
-                    Sign Up
-                  </Button>
+                  {isAuthenticated ? (
+                    <>
+                      <Button
+                        asChild
+                        variant="outline"
+                        className="w-full justify-start"
+                      >
+                        <Link
+                          href="/profile"
+                          onClick={() => setIsMenuOpen(false)}
+                        >
+                          Profile
+                        </Link>
+                      </Button>
+
+                      <Button
+                        variant="destructive"
+                        className="w-full justify-start"
+                        onClick={() => {
+                          setIsMenuOpen(false);
+                          handleLogout();
+                        }}
+                      >
+                        Logout
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Button
+                        asChild
+                        variant="outline"
+                        className="w-full justify-start font-bold rounded-none border-2"
+                      >
+                        <Link
+                          href="/authentication"
+                          onClick={() => setIsMenuOpen(false)}
+                        >
+                          <ChevronRight className="size-4 mr-2" />
+                          Login
+                        </Link>
+                      </Button>
+
+                      <Button
+                        asChild
+                        className="w-full justify-start font-bold rounded-none bg-foreground text-background hover:bg-foreground/90"
+                      >
+                        <Link
+                          href="/authentication?mode=signup"
+                          onClick={() => setIsMenuOpen(false)}
+                        >
+                          <ChevronRight className="size-4 mr-2" />
+                          Sign Up
+                        </Link>
+                      </Button>
+                    </>
+                  )}
                 </div>
               </div>
             </SheetContent>

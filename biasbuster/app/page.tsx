@@ -1,12 +1,30 @@
+'use client';
 import { Navbar } from "./component/Navbar";
 import { Hero } from "./component/Hero";
 import { TrustedBy } from "./component/TrustedBy";
 import { Features } from "./component/Features";
-import {Cta} from "./component/Cta";
+import { Cta } from "./component/Cta";
 import { Footer } from "./component/Footer";
 import Faq from "./component/Faq";
 import { ProductionReady } from "./component/Production";
+
+import { useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 export default function HomePage() {
+  const params = useSearchParams();
+
+  useEffect(() => {
+    const access = params.get("access_token");
+    const refresh = params.get("refresh_token");
+
+    if (access && refresh) {
+      localStorage.setItem("access_token", access);
+      localStorage.setItem("refresh_token", refresh);
+
+      window.history.replaceState({}, "", "/");
+    }
+  }, [params]);
+
   return (
     <div className="min-h-screen text-foreground bg-noise-light bg-repeat bg-[size:10px_10px]
  bg-center  w-full">
@@ -24,4 +42,3 @@ export default function HomePage() {
     </div>
   );
 }
-  
