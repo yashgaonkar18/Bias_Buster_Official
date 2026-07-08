@@ -1,0 +1,380 @@
+{
+  "report_id": "787c5529-d23b-48fa-b454-10c3c5ccfe1c",
+  "title": "Fairness Experiment Report - Upload 31",
+  "generated_at": "2026-07-07T09:23:59.627500Z",
+  "section_flags": {
+    "comparison": true,
+    "optimization": false,
+    "experiments": false,
+    "explainability": false
+  },
+  "overview": {
+    "upload_id": 31,
+    "dataset_filename": "processed_dataset.csv",
+    "model_filename": "compas_log_reg_baseline.pkl",
+    "model_type": "LogisticRegression",
+    "best_balanced_model_name": "ThresholdOptimizer_mitigated_threshold",
+    "best_accuracy_model_name": "Pipeline_mitigated_reweighting",
+    "best_fairness_model_name": "ThresholdOptimizer_mitigated_threshold",
+    "key_metrics": {
+      "accuracy": 0.6468359226979916,
+      "fairness_score": 0.984913334545242,
+      "dpd": 0.02787573807197069,
+      "eod": 0.0022975928375453814,
+      "dir": 0.9432293339457941,
+      "combined_score": 0.8496823698063418
+    }
+  },
+  "summary": "Fairness Experiment Report - Upload 31 summarizes the current fairness state for upload 31. Accuracy changed to +0.647 and fairness score changed to +0.985. Strong fairness improvement with no measurable accuracy loss. The best balanced model is ThresholdOptimizer_mitigated_threshold with combined score 0.850.",
+  "interpretation": {
+    "summary": "Strong fairness improvement with no measurable accuracy loss. The best balanced model is ThresholdOptimizer_mitigated_threshold with combined score 0.850.",
+    "accuracy_change": 0.6468,
+    "fairness_change": 0.9849
+  },
+  "comparison_models": [
+    {
+      "model_id": "e6d249f6-e900-4aab-a008-56985fcb6740",
+      "model_name": "ThresholdOptimizer_mitigated_threshold",
+      "model_type": "ThresholdOptimizer",
+      "source_type": "mitigated",
+      "version": "v1_mitigated_threshold",
+      "accuracy": 0.6468359226979916,
+      "fairness_score": 0.984913334545242,
+      "combined_score": 0.8496823698063418,
+      "dpd": 0.02787573807197069,
+      "eod": 0.0022975928375453814,
+      "dir": 0.9432293339457941,
+      "bias_severity": "Low",
+      "recommendation_status": "recommended",
+      "download_url": "/api/models/download/e6d249f6-e900-4aab-a008-56985fcb6740",
+      "dataset_download_url": null,
+      "artifact_name": "model_31_threshold_mitigated.joblib",
+      "summary": null,
+      "is_recommended": true
+    },
+    {
+      "model_id": "37bc744c-c930-4418-862e-c9b3101efd2c",
+      "model_name": "ThresholdOptimizer_mitigated_threshold",
+      "model_type": "ThresholdOptimizer",
+      "source_type": "mitigated",
+      "version": "v1_mitigated_threshold",
+      "accuracy": 0.6426676771504358,
+      "fairness_score": 0.9835042911394636,
+      "combined_score": 0.8471696455438524,
+      "dpd": 0.02409621051291555,
+      "eod": 0.008895207208157285,
+      "dir": 0.950545915721715,
+      "bias_severity": "Low",
+      "recommendation_status": null,
+      "download_url": "/api/models/download/37bc744c-c930-4418-862e-c9b3101efd2c",
+      "dataset_download_url": null,
+      "artifact_name": "model_31_threshold_mitigated.joblib",
+      "summary": null,
+      "is_recommended": false
+    },
+    {
+      "model_id": "61e53de2-718e-49cf-9187-ca3052fc0aba",
+      "model_name": "ThresholdOptimizer_mitigated_threshold",
+      "model_type": "ThresholdOptimizer",
+      "source_type": "mitigated",
+      "version": "v1_mitigated_threshold",
+      "accuracy": 0.6413414172034861,
+      "fairness_score": 0.9817206230499639,
+      "combined_score": 0.8455689407113728,
+      "dpd": 0.03306951823604076,
+      "eod": 0.003489235664031476,
+      "dir": 0.9334205958152001,
+      "bias_severity": "Low",
+      "recommendation_status": null,
+      "download_url": "/api/models/download/61e53de2-718e-49cf-9187-ca3052fc0aba",
+      "dataset_download_url": null,
+      "artifact_name": "model_31_threshold_mitigated.joblib",
+      "summary": null,
+      "is_recommended": false
+    },
+    {
+      "model_id": "de953c05-22be-4988-b46f-dc092d2bf253",
+      "model_name": "ThresholdOptimizer_mitigated_threshold",
+      "model_type": "ThresholdOptimizer",
+      "source_type": "mitigated",
+      "version": "v1_mitigated_threshold",
+      "accuracy": 0.6419098143236074,
+      "fairness_score": 0.9806721478746057,
+      "combined_score": 0.8451672144542063,
+      "dpd": 0.03574361336074072,
+      "eod": 0.002912090890048069,
+      "dir": 0.9284902505227777,
+      "bias_severity": "Low",
+      "recommendation_status": null,
+      "download_url": "/api/models/download/de953c05-22be-4988-b46f-dc092d2bf253",
+      "dataset_download_url": null,
+      "artifact_name": "model_31_threshold_mitigated.joblib",
+      "summary": null,
+      "is_recommended": false
+    },
+    {
+      "model_id": "2653fd9b-fe7d-4af2-9f47-ab8b0665a64b",
+      "model_name": "Pipeline_mitigated_smote",
+      "model_type": "Pipeline",
+      "source_type": "mitigated",
+      "version": "v1_mitigated_smote",
+      "accuracy": 0.6714664645699129,
+      "fairness_score": 0.7168842343368297,
+      "combined_score": 0.698717126430063,
+      "dpd": 0.2735641996248329,
+      "eod": 0.29266733170150777,
+      "dir": 0.5342807861614775,
+      "bias_severity": "High",
+      "recommendation_status": null,
+      "download_url": "/api/models/download/2653fd9b-fe7d-4af2-9f47-ab8b0665a64b",
+      "dataset_download_url": null,
+      "artifact_name": "model_31_smote_mitigated.joblib",
+      "summary": null,
+      "is_recommended": false
+    },
+    {
+      "model_id": "ac0c65dd-2de7-4c2b-833c-07fcc74da6c1",
+      "model_name": "Pipeline_mitigated_smote",
+      "model_type": "Pipeline",
+      "source_type": "mitigated",
+      "version": "v1_mitigated_smote",
+      "accuracy": 0.6714664645699129,
+      "fairness_score": 0.7168842343368297,
+      "combined_score": 0.698717126430063,
+      "dpd": 0.2735641996248329,
+      "eod": 0.29266733170150777,
+      "dir": 0.5342807861614775,
+      "bias_severity": "High",
+      "recommendation_status": null,
+      "download_url": "/api/models/download/ac0c65dd-2de7-4c2b-833c-07fcc74da6c1",
+      "dataset_download_url": null,
+      "artifact_name": "model_31_smote_mitigated.joblib",
+      "summary": null,
+      "is_recommended": false
+    },
+    {
+      "model_id": "88809488-0094-4f94-a8d3-093bc3dd7a22",
+      "model_name": "Pipeline_mitigated_smote",
+      "model_type": "Pipeline",
+      "source_type": "mitigated",
+      "version": "v1_mitigated_smote",
+      "accuracy": 0.6714664645699129,
+      "fairness_score": 0.7168842343368297,
+      "combined_score": 0.698717126430063,
+      "dpd": 0.2735641996248329,
+      "eod": 0.29266733170150777,
+      "dir": 0.5342807861614775,
+      "bias_severity": "High",
+      "recommendation_status": null,
+      "download_url": "/api/models/download/88809488-0094-4f94-a8d3-093bc3dd7a22",
+      "dataset_download_url": null,
+      "artifact_name": "model_31_smote_mitigated.joblib",
+      "summary": null,
+      "is_recommended": false
+    },
+    {
+      "model_id": "0d4ce730-fb2e-4120-9879-ff1bf263b466",
+      "model_name": "Pipeline_mitigated_reweighting",
+      "model_type": "Pipeline",
+      "source_type": "mitigated",
+      "version": "v1_mitigated_reweighting",
+      "accuracy": 0.6771504357711254,
+      "fairness_score": 0.7116756573917283,
+      "combined_score": 0.6978655687434872,
+      "dpd": 0.2742782901067466,
+      "eod": 0.3023703951097967,
+      "dir": 0.47885483477622953,
+      "bias_severity": "High",
+      "recommendation_status": null,
+      "download_url": "/api/models/download/0d4ce730-fb2e-4120-9879-ff1bf263b466",
+      "dataset_download_url": null,
+      "artifact_name": "model_31_reweighting_mitigated.joblib",
+      "summary": null,
+      "is_recommended": false
+    },
+    {
+      "model_id": "1733f572-3f6e-419f-bae3-8363b6f39d0f",
+      "model_name": "Pipeline_mitigated_reweighting",
+      "model_type": "Pipeline",
+      "source_type": "mitigated",
+      "version": "v1_mitigated_reweighting",
+      "accuracy": 0.6771504357711254,
+      "fairness_score": 0.7116756573917283,
+      "combined_score": 0.6978655687434872,
+      "dpd": 0.2742782901067466,
+      "eod": 0.3023703951097967,
+      "dir": 0.47885483477622953,
+      "bias_severity": "High",
+      "recommendation_status": null,
+      "download_url": "/api/models/download/1733f572-3f6e-419f-bae3-8363b6f39d0f",
+      "dataset_download_url": null,
+      "artifact_name": "model_31_reweighting_mitigated.joblib",
+      "summary": null,
+      "is_recommended": false
+    },
+    {
+      "model_id": "37321dd8-5f66-44a6-ac57-ebe9f86a7e3d",
+      "model_name": "Pipeline_mitigated_reweighting",
+      "model_type": "Pipeline",
+      "source_type": "mitigated",
+      "version": "v1_mitigated_reweighting",
+      "accuracy": 0.6771504357711254,
+      "fairness_score": 0.7116756573917283,
+      "combined_score": 0.6978655687434872,
+      "dpd": 0.2742782901067466,
+      "eod": 0.3023703951097967,
+      "dir": 0.47885483477622953,
+      "bias_severity": "High",
+      "recommendation_status": null,
+      "download_url": "/api/models/download/37321dd8-5f66-44a6-ac57-ebe9f86a7e3d",
+      "dataset_download_url": null,
+      "artifact_name": "model_31_reweighting_mitigated.joblib",
+      "summary": null,
+      "is_recommended": false
+    }
+  ],
+  "chart_data": {
+    "labels": [
+      "ThresholdOptimizer_mitigated_threshold",
+      "ThresholdOptimizer_mitigated_threshold",
+      "ThresholdOptimizer_mitigated_threshold",
+      "ThresholdOptimizer_mitigated_threshold",
+      "Pipeline_mitigated_smote",
+      "Pipeline_mitigated_smote",
+      "Pipeline_mitigated_smote",
+      "Pipeline_mitigated_reweighting",
+      "Pipeline_mitigated_reweighting",
+      "Pipeline_mitigated_reweighting"
+    ],
+    "datasets": [
+      {
+        "label": "Accuracy",
+        "data": [
+          0.6468359226979916,
+          0.6426676771504358,
+          0.6413414172034861,
+          0.6419098143236074,
+          0.6714664645699129,
+          0.6714664645699129,
+          0.6714664645699129,
+          0.6771504357711254,
+          0.6771504357711254,
+          0.6771504357711254
+        ]
+      },
+      {
+        "label": "Fairness Score",
+        "data": [
+          0.984913334545242,
+          0.9835042911394636,
+          0.9817206230499639,
+          0.9806721478746057,
+          0.7168842343368297,
+          0.7168842343368297,
+          0.7168842343368297,
+          0.7116756573917283,
+          0.7116756573917283,
+          0.7116756573917283
+        ]
+      },
+      {
+        "label": "Combined Score",
+        "data": [
+          0.8496823698063418,
+          0.8471696455438524,
+          0.8455689407113728,
+          0.8451672144542063,
+          0.698717126430063,
+          0.698717126430063,
+          0.698717126430063,
+          0.6978655687434872,
+          0.6978655687434872,
+          0.6978655687434872
+        ]
+      }
+    ],
+    "scatter": [
+      {
+        "label": "ThresholdOptimizer_mitigated_threshold",
+        "x": 0.6468359226979916,
+        "y": 0.984913334545242,
+        "combined": 0.8496823698063418,
+        "source_type": "mitigated"
+      },
+      {
+        "label": "ThresholdOptimizer_mitigated_threshold",
+        "x": 0.6426676771504358,
+        "y": 0.9835042911394636,
+        "combined": 0.8471696455438524,
+        "source_type": "mitigated"
+      },
+      {
+        "label": "ThresholdOptimizer_mitigated_threshold",
+        "x": 0.6413414172034861,
+        "y": 0.9817206230499639,
+        "combined": 0.8455689407113728,
+        "source_type": "mitigated"
+      },
+      {
+        "label": "ThresholdOptimizer_mitigated_threshold",
+        "x": 0.6419098143236074,
+        "y": 0.9806721478746057,
+        "combined": 0.8451672144542063,
+        "source_type": "mitigated"
+      },
+      {
+        "label": "Pipeline_mitigated_smote",
+        "x": 0.6714664645699129,
+        "y": 0.7168842343368297,
+        "combined": 0.698717126430063,
+        "source_type": "mitigated"
+      },
+      {
+        "label": "Pipeline_mitigated_smote",
+        "x": 0.6714664645699129,
+        "y": 0.7168842343368297,
+        "combined": 0.698717126430063,
+        "source_type": "mitigated"
+      },
+      {
+        "label": "Pipeline_mitigated_smote",
+        "x": 0.6714664645699129,
+        "y": 0.7168842343368297,
+        "combined": 0.698717126430063,
+        "source_type": "mitigated"
+      },
+      {
+        "label": "Pipeline_mitigated_reweighting",
+        "x": 0.6771504357711254,
+        "y": 0.7116756573917283,
+        "combined": 0.6978655687434872,
+        "source_type": "mitigated"
+      },
+      {
+        "label": "Pipeline_mitigated_reweighting",
+        "x": 0.6771504357711254,
+        "y": 0.7116756573917283,
+        "combined": 0.6978655687434872,
+        "source_type": "mitigated"
+      },
+      {
+        "label": "Pipeline_mitigated_reweighting",
+        "x": 0.6771504357711254,
+        "y": 0.7116756573917283,
+        "combined": 0.6978655687434872,
+        "source_type": "mitigated"
+      }
+    ]
+  },
+  "experiments": {
+    "latest": null,
+    "latest_optimization": null,
+    "latest_mitigation": {
+      "id": 171,
+      "strategy_used": "threshold",
+      "artifact_model_path": "C:\\Users\\hp\\Desktop\\BiasBuster\\Bias_Buster_Official\\backend\\artifacts\\models\\model_31_threshold_mitigated.joblib",
+      "artifact_dataset_path": null
+    },
+    "latest_correction": null
+  }
+}

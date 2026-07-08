@@ -1,0 +1,380 @@
+{
+  "report_id": "ad55c7a7-bf94-437a-b52c-efd73841dfc7",
+  "title": "Fairness Experiment Report - Upload 16",
+  "generated_at": "2026-07-07T07:19:49.357957Z",
+  "section_flags": {
+    "comparison": true,
+    "optimization": false,
+    "experiments": false,
+    "explainability": false
+  },
+  "overview": {
+    "upload_id": 16,
+    "dataset_filename": "processed_dataset.csv",
+    "model_filename": "german_dt_baseline.pkl",
+    "model_type": "DecisionTreeClassifier",
+    "best_balanced_model_name": "Pipeline_mitigated_smote",
+    "best_accuracy_model_name": "ThresholdOptimizer_mitigated_threshold",
+    "best_fairness_model_name": "Pipeline_mitigated_smote",
+    "key_metrics": {
+      "accuracy": 0.923,
+      "fairness_score": 0.9434867390728355,
+      "dpd": 0.10140252454417953,
+      "eod": 0.011623997310149403,
+      "dir": 0.7266540642722117,
+      "combined_score": 0.9352920434437013
+    }
+  },
+  "summary": "Fairness Experiment Report - Upload 16 summarizes the current fairness state for upload 16. Accuracy changed by +0.923 and fairness score changed by +0.943. Strong fairness improvement with no measurable accuracy loss. The best balanced model is Pipeline_mitigated_smote with combined score 0.935.",
+  "interpretation": {
+    "summary": "Strong fairness improvement with no measurable accuracy loss. The best balanced model is Pipeline_mitigated_smote with combined score 0.935.",
+    "accuracy_change": 0.923,
+    "fairness_change": 0.9435
+  },
+  "comparison_models": [
+    {
+      "model_id": "a7c05616-42b3-45fc-ab1c-4bafe527ac12",
+      "model_name": "Pipeline_mitigated_smote",
+      "model_type": "Pipeline",
+      "source_type": "mitigated",
+      "version": "v1_mitigated_smote",
+      "accuracy": 0.923,
+      "fairness_score": 0.9434867390728355,
+      "combined_score": 0.9352920434437013,
+      "dpd": 0.10140252454417953,
+      "eod": 0.011623997310149403,
+      "dir": 0.7266540642722117,
+      "bias_severity": "Medium",
+      "recommendation_status": "recommended",
+      "download_url": "/api/models/download/a7c05616-42b3-45fc-ab1c-4bafe527ac12",
+      "dataset_download_url": null,
+      "artifact_name": "model_16_smote_mitigated.joblib",
+      "summary": null,
+      "is_recommended": true
+    },
+    {
+      "model_id": "a6e96a7d-341e-499b-a940-8036cb3e85d7",
+      "model_name": "Pipeline_mitigated_smote",
+      "model_type": "Pipeline",
+      "source_type": "mitigated",
+      "version": "v1_mitigated_smote",
+      "accuracy": 0.923,
+      "fairness_score": 0.9434867390728355,
+      "combined_score": 0.9352920434437013,
+      "dpd": 0.10140252454417953,
+      "eod": 0.011623997310149403,
+      "dir": 0.7266540642722117,
+      "bias_severity": "Medium",
+      "recommendation_status": null,
+      "download_url": "/api/models/download/a6e96a7d-341e-499b-a940-8036cb3e85d7",
+      "dataset_download_url": null,
+      "artifact_name": "model_16_smote_mitigated.joblib",
+      "summary": null,
+      "is_recommended": false
+    },
+    {
+      "model_id": "60b1d85a-ab31-4e73-9d1e-8c4efce34c57",
+      "model_name": "Pipeline_mitigated_smote",
+      "model_type": "Pipeline",
+      "source_type": "mitigated",
+      "version": "v1_mitigated_smote",
+      "accuracy": 0.923,
+      "fairness_score": 0.9434867390728355,
+      "combined_score": 0.9352920434437013,
+      "dpd": 0.10140252454417953,
+      "eod": 0.011623997310149403,
+      "dir": 0.7266540642722117,
+      "bias_severity": "Medium",
+      "recommendation_status": null,
+      "download_url": "/api/models/download/60b1d85a-ab31-4e73-9d1e-8c4efce34c57",
+      "dataset_download_url": null,
+      "artifact_name": "model_16_smote_mitigated.joblib",
+      "summary": null,
+      "is_recommended": false
+    },
+    {
+      "model_id": "ae11ac0a-df37-4f9a-b6fc-e78e6d8c927b",
+      "model_name": "Pipeline_mitigated_smote",
+      "model_type": "Pipeline",
+      "source_type": "mitigated",
+      "version": "v1_mitigated_smote",
+      "accuracy": 0.923,
+      "fairness_score": 0.9434867390728355,
+      "combined_score": 0.9352920434437013,
+      "dpd": 0.10140252454417953,
+      "eod": 0.011623997310149403,
+      "dir": 0.7266540642722117,
+      "bias_severity": "Medium",
+      "recommendation_status": null,
+      "download_url": "/api/models/download/ae11ac0a-df37-4f9a-b6fc-e78e6d8c927b",
+      "dataset_download_url": null,
+      "artifact_name": "model_16_smote_mitigated.joblib",
+      "summary": null,
+      "is_recommended": false
+    },
+    {
+      "model_id": "eaaa8793-bc0c-4901-8bf9-7147f5402942",
+      "model_name": "ThresholdOptimizer_mitigated_threshold",
+      "model_type": "ThresholdOptimizer",
+      "source_type": "mitigated",
+      "version": "v1_mitigated_threshold",
+      "accuracy": 0.935,
+      "fairness_score": 0.9200308797024582,
+      "combined_score": 0.926018527821475,
+      "dpd": 0.09850397381954185,
+      "eod": 0.061434266775541646,
+      "dir": 0.7344675488342786,
+      "bias_severity": "Low",
+      "recommendation_status": null,
+      "download_url": "/api/models/download/eaaa8793-bc0c-4901-8bf9-7147f5402942",
+      "dataset_download_url": null,
+      "artifact_name": "model_16_threshold_mitigated.joblib",
+      "summary": null,
+      "is_recommended": false
+    },
+    {
+      "model_id": "9ac420b7-60dc-4667-97a4-29e07fd8fc19",
+      "model_name": "ThresholdOptimizer_mitigated_threshold",
+      "model_type": "ThresholdOptimizer",
+      "source_type": "mitigated",
+      "version": "v1_mitigated_threshold",
+      "accuracy": 0.935,
+      "fairness_score": 0.9200308797024582,
+      "combined_score": 0.926018527821475,
+      "dpd": 0.09850397381954185,
+      "eod": 0.061434266775541646,
+      "dir": 0.7344675488342786,
+      "bias_severity": "Low",
+      "recommendation_status": null,
+      "download_url": "/api/models/download/9ac420b7-60dc-4667-97a4-29e07fd8fc19",
+      "dataset_download_url": null,
+      "artifact_name": "model_16_threshold_mitigated.joblib",
+      "summary": null,
+      "is_recommended": false
+    },
+    {
+      "model_id": "8bd2def4-107e-4cc9-8c21-b2041ebc477d",
+      "model_name": "ThresholdOptimizer_mitigated_threshold",
+      "model_type": "ThresholdOptimizer",
+      "source_type": "mitigated",
+      "version": "v1_mitigated_threshold",
+      "accuracy": 0.935,
+      "fairness_score": 0.9200308797024582,
+      "combined_score": 0.926018527821475,
+      "dpd": 0.09850397381954185,
+      "eod": 0.061434266775541646,
+      "dir": 0.7344675488342786,
+      "bias_severity": "Low",
+      "recommendation_status": null,
+      "download_url": "/api/models/download/8bd2def4-107e-4cc9-8c21-b2041ebc477d",
+      "dataset_download_url": null,
+      "artifact_name": "model_16_threshold_mitigated.joblib",
+      "summary": null,
+      "is_recommended": false
+    },
+    {
+      "model_id": "c7e5b903-2672-434d-9098-12fc12809536",
+      "model_name": "Pipeline_mitigated_reweighting",
+      "model_type": "Pipeline",
+      "source_type": "mitigated",
+      "version": "v1_mitigated_reweighting",
+      "accuracy": 0.932,
+      "fairness_score": 0.9151577946216056,
+      "combined_score": 0.9218946767729633,
+      "dpd": 0.10042075736325384,
+      "eod": 0.0692636533935348,
+      "dir": 0.7220496894409938,
+      "bias_severity": "Medium",
+      "recommendation_status": null,
+      "download_url": "/api/models/download/c7e5b903-2672-434d-9098-12fc12809536",
+      "dataset_download_url": null,
+      "artifact_name": "model_16_reweighting_mitigated.joblib",
+      "summary": null,
+      "is_recommended": false
+    },
+    {
+      "model_id": "f46ba5dd-c40b-45cc-8bae-7ab564140e42",
+      "model_name": "Pipeline_mitigated_reweighting",
+      "model_type": "Pipeline",
+      "source_type": "mitigated",
+      "version": "v1_mitigated_reweighting",
+      "accuracy": 0.932,
+      "fairness_score": 0.9151577946216056,
+      "combined_score": 0.9218946767729633,
+      "dpd": 0.10042075736325384,
+      "eod": 0.0692636533935348,
+      "dir": 0.7220496894409938,
+      "bias_severity": "Medium",
+      "recommendation_status": null,
+      "download_url": "/api/models/download/f46ba5dd-c40b-45cc-8bae-7ab564140e42",
+      "dataset_download_url": null,
+      "artifact_name": "model_16_reweighting_mitigated.joblib",
+      "summary": null,
+      "is_recommended": false
+    },
+    {
+      "model_id": "5b61241c-78ce-4d66-a3d8-e1adae1a95cb",
+      "model_name": "Pipeline_mitigated_reweighting",
+      "model_type": "Pipeline",
+      "source_type": "mitigated",
+      "version": "v1_mitigated_reweighting",
+      "accuracy": 0.932,
+      "fairness_score": 0.9151577946216056,
+      "combined_score": 0.9218946767729633,
+      "dpd": 0.10042075736325384,
+      "eod": 0.0692636533935348,
+      "dir": 0.7220496894409938,
+      "bias_severity": "Medium",
+      "recommendation_status": null,
+      "download_url": "/api/models/download/5b61241c-78ce-4d66-a3d8-e1adae1a95cb",
+      "dataset_download_url": null,
+      "artifact_name": "model_16_reweighting_mitigated.joblib",
+      "summary": null,
+      "is_recommended": false
+    }
+  ],
+  "chart_data": {
+    "labels": [
+      "Pipeline_mitigated_smote",
+      "Pipeline_mitigated_smote",
+      "Pipeline_mitigated_smote",
+      "Pipeline_mitigated_smote",
+      "ThresholdOptimizer_mitigated_threshold",
+      "ThresholdOptimizer_mitigated_threshold",
+      "ThresholdOptimizer_mitigated_threshold",
+      "Pipeline_mitigated_reweighting",
+      "Pipeline_mitigated_reweighting",
+      "Pipeline_mitigated_reweighting"
+    ],
+    "datasets": [
+      {
+        "label": "Accuracy",
+        "data": [
+          0.923,
+          0.923,
+          0.923,
+          0.923,
+          0.935,
+          0.935,
+          0.935,
+          0.932,
+          0.932,
+          0.932
+        ]
+      },
+      {
+        "label": "Fairness Score",
+        "data": [
+          0.9434867390728355,
+          0.9434867390728355,
+          0.9434867390728355,
+          0.9434867390728355,
+          0.9200308797024582,
+          0.9200308797024582,
+          0.9200308797024582,
+          0.9151577946216056,
+          0.9151577946216056,
+          0.9151577946216056
+        ]
+      },
+      {
+        "label": "Combined Score",
+        "data": [
+          0.9352920434437013,
+          0.9352920434437013,
+          0.9352920434437013,
+          0.9352920434437013,
+          0.926018527821475,
+          0.926018527821475,
+          0.926018527821475,
+          0.9218946767729633,
+          0.9218946767729633,
+          0.9218946767729633
+        ]
+      }
+    ],
+    "scatter": [
+      {
+        "label": "Pipeline_mitigated_smote",
+        "x": 0.923,
+        "y": 0.9434867390728355,
+        "combined": 0.9352920434437013,
+        "source_type": "mitigated"
+      },
+      {
+        "label": "Pipeline_mitigated_smote",
+        "x": 0.923,
+        "y": 0.9434867390728355,
+        "combined": 0.9352920434437013,
+        "source_type": "mitigated"
+      },
+      {
+        "label": "Pipeline_mitigated_smote",
+        "x": 0.923,
+        "y": 0.9434867390728355,
+        "combined": 0.9352920434437013,
+        "source_type": "mitigated"
+      },
+      {
+        "label": "Pipeline_mitigated_smote",
+        "x": 0.923,
+        "y": 0.9434867390728355,
+        "combined": 0.9352920434437013,
+        "source_type": "mitigated"
+      },
+      {
+        "label": "ThresholdOptimizer_mitigated_threshold",
+        "x": 0.935,
+        "y": 0.9200308797024582,
+        "combined": 0.926018527821475,
+        "source_type": "mitigated"
+      },
+      {
+        "label": "ThresholdOptimizer_mitigated_threshold",
+        "x": 0.935,
+        "y": 0.9200308797024582,
+        "combined": 0.926018527821475,
+        "source_type": "mitigated"
+      },
+      {
+        "label": "ThresholdOptimizer_mitigated_threshold",
+        "x": 0.935,
+        "y": 0.9200308797024582,
+        "combined": 0.926018527821475,
+        "source_type": "mitigated"
+      },
+      {
+        "label": "Pipeline_mitigated_reweighting",
+        "x": 0.932,
+        "y": 0.9151577946216056,
+        "combined": 0.9218946767729633,
+        "source_type": "mitigated"
+      },
+      {
+        "label": "Pipeline_mitigated_reweighting",
+        "x": 0.932,
+        "y": 0.9151577946216056,
+        "combined": 0.9218946767729633,
+        "source_type": "mitigated"
+      },
+      {
+        "label": "Pipeline_mitigated_reweighting",
+        "x": 0.932,
+        "y": 0.9151577946216056,
+        "combined": 0.9218946767729633,
+        "source_type": "mitigated"
+      }
+    ]
+  },
+  "experiments": {
+    "latest": null,
+    "latest_optimization": null,
+    "latest_mitigation": {
+      "id": 59,
+      "strategy_used": "smote",
+      "artifact_model_path": "C:\\Users\\hp\\Desktop\\BiasBuster\\Bias_Buster_Official\\backend\\artifacts\\models\\model_16_smote_mitigated.joblib",
+      "artifact_dataset_path": "C:\\Users\\hp\\Desktop\\BiasBuster\\Bias_Buster_Official\\backend\\artifacts\\datasets\\dataset_16_smote_mitigated.csv"
+    },
+    "latest_correction": null
+  }
+}
