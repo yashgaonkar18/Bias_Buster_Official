@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, FormEvent, Suspense } from "react";
-import { useSearchParams ,useRouter } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { login, signup, googleLogin, githubLogin } from "@/lib/auth";
+import { AUTH_CHANGED_EVENT } from "@/lib/auth-events";
 
 type Mode = "login" | "signup";
 
@@ -13,7 +14,7 @@ function AuthPageContent() {
     const searchParams = useSearchParams();
     const initialMode = searchParams.get("mode") === "signup" ? "signup" : "login";
     const [mode, setMode] = useState<Mode>(initialMode);
-    
+
 
     return (
         <main className="min-h-screen flex items-center justify-center bg-slate-100 p-4 md:p-6">
@@ -159,10 +160,12 @@ function Logo() {
 
 function LoginForm() {
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
     const router = useRouter();
 
     const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        setError(null);
         const data = new FormData(e.currentTarget);
         setLoading(true);
         try {
@@ -174,11 +177,16 @@ function LoginForm() {
             localStorage.setItem("access_token", result.access_token);
             localStorage.setItem("refresh_token", result.refresh_token);
             localStorage.setItem("user", JSON.stringify(result.user));
-            console.log(result);
+            window.dispatchEvent(new Event(AUTH_CHANGED_EVENT));
             router.push("/");
             router.refresh();
-        } catch (err) {
+        } catch (err: any) {
             console.error(err);
+            const message =
+                err?.response?.data?.detail ||
+                err?.response?.data?.message ||
+                "Incorrect email or password. Please try again.";
+            setError(message);
         } finally {
             setLoading(false);
         }
@@ -193,10 +201,15 @@ function LoginForm() {
                     <input type="checkbox" name="remember" className="rounded border-slate-300" />
                     Remember me
                 </label>
-                <Link href="/reset-password" className="text-slate-500 hover:text-slate-900 hover:underline">
+                <Link href="/forgot-password" className="text-slate-500 hover:text-slate-900 hover:underline">
                     Forgot Password
                 </Link>
             </div>
+            {error && (
+                <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
+                    {error}
+                </p>
+            )}
             <SubmitButton loading={loading}>Sign In</SubmitButton>
         </form>
     );
@@ -204,10 +217,12 @@ function LoginForm() {
 
 function SignupForm() {
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
     const router = useRouter();
 
     const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        setError(null);
         const data = new FormData(e.currentTarget);
         setLoading(true);
         try {
@@ -220,11 +235,17 @@ function SignupForm() {
             localStorage.setItem("access_token", result.access_token);
             localStorage.setItem("refresh_token", result.refresh_token);
             localStorage.setItem("user", JSON.stringify(result.user));
-            console.log(result);
+            window.dispatchEvent(new Event(AUTH_CHANGED_EVENT));
+            sessionStorage.setItem("show_welcome", "true");
             router.push("/");
             router.refresh();
-        } catch (err) {
+        } catch (err: any) {
             console.error(err);
+            const message =
+                err?.response?.data?.detail ||
+                err?.response?.data?.message ||
+                "Something went wrong creating your account. Please try again.";
+            setError(message);
         } finally {
             setLoading(false);
         }
@@ -248,6 +269,11 @@ function SignupForm() {
                     <a href="#" className="font-medium text-slate-900 hover:underline">Privacy Policy</a>.
                 </span>
             </label>
+            {error && (
+                <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
+                    {error}
+                </p>
+            )}
             <SubmitButton loading={loading}>Create account</SubmitButton>
         </form>
     );

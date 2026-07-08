@@ -7,6 +7,7 @@ import { Cta } from "./component/Cta";
 import { Footer } from "./component/Footer";
 import Faq from "./component/Faq";
 import { ProductionReady } from "./component/Production";
+import { WelcomeToast } from "./component/welcome-toast";
 
 import { useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
@@ -28,6 +29,7 @@ function HomePageContent() {
   return (
     <div className="min-h-screen text-foreground bg-noise-light bg-repeat bg-[size:10px_10px]
  bg-center  w-full">
+      <WelcomeToast />
       <Navbar />
       <Hero />
       <TrustedBy />

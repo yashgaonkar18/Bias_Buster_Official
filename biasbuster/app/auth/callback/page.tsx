@@ -1,11 +1,3 @@
-// app/auth/callback/page.tsx
-//
-// This page is where your backend should redirect to after a successful
-// Google/GitHub OAuth login, e.g.:
-//   http://localhost:3000/auth/callback?access_token=...&refresh_token=...
-//
-// Adjust the query param names below (ACCESS, REFRESH) to match whatever
-// your FastAPI OAuth route actually sends in its RedirectResponse.
 
 "use client";
 

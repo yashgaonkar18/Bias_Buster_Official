@@ -380,18 +380,30 @@ class AuthService:
 
     #### Password Reset
     async def request_password_reset(self, email: str) -> None:
+        print("STEP 1: request_password_reset called")
+        print(f"Email: {email}")
+
         user = await self.users.get_by_email(email.lower().strip())
-        if not user or user.provider != AuthProvider.EMAIL:
-            return  # Fail silently for security
+
+        if not user:
+            print("STEP 2: No user found with this email — silently returning")
+            return
+
+        if user.provider != AuthProvider.EMAIL:
+            print(f"STEP 2: User provider is {user.provider}, not EMAIL — silently returning (no password to reset)")
+            return
 
         serializer = URLSafeTimedSerializer(settings.SECRET_KEY)
         token = serializer.dumps(user.email, salt="password-reset")
 
         reset_link = f"{settings.FRONTEND_URL}/reset-password?token={token}"
+        print(f"STEP 3: Reset link generated: {reset_link}")
 
-        await self.email_service.send_password_reset_email(
+        print("STEP 4: About to call EmailService")
+        result = await self.email_service.send_password_reset_email(
             to=user.email, name=user.full_name, reset_link=reset_link
         )
+        print("STEP 5: EmailService returned:", result)
 
     async def reset_password(self, token: str, new_password: str) -> None:
         serializer = URLSafeTimedSerializer(settings.SECRET_KEY)
