@@ -733,9 +733,8 @@ def _render_pdf(report_payload: Dict[str, Any], pdf_path: Path) -> None:
             ax.text(0.06, y, line, fontsize=10, va="top")
             y -= 0.028
 
-        section_flags_str = ", ".join([name for name, enabled in report_payload.get('section_flags', {}).items() if enabled]) or 'none'
         section_lines = [
-            f"Sections: {section_flags_str}",
+            f"Sections: {', '.join([name for name, enabled in report_payload.get('section_flags', {}).items() if enabled]) or 'none'}",
             f"Generated at: {report_payload.get('generated_at', '')}",
         ]
         y -= 0.02

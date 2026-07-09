@@ -10,7 +10,6 @@ import {
   Settings,
   Folder,
   ChevronDown,
-  ChevronRight,
   BarChart3,
   FileText,
   Clock,
@@ -19,6 +18,7 @@ import {
 } from "lucide-react";
 import { WorkspaceProvider, useWorkspace } from "./WorkspaceContext";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 function WorkspaceLayoutInner({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -35,7 +35,6 @@ function WorkspaceLayoutInner({ children }: { children: React.ReactNode }) {
     applyOptimization,
     fetchComparison,
     selectedStrategy,
-    optMethod,
   } = useWorkspace();
 
   const [showProfile, setShowProfile] = useState(false);
@@ -99,9 +98,9 @@ function WorkspaceLayoutInner({ children }: { children: React.ReactNode }) {
             <div className="size-8 flex items-center justify-center">
               <Brain className="size-8 stroke-[2.5] text-orange-500" />
             </div>
-            <span className="font-display text-xl tracking-wider text-foreground uppercase">
+            <Link href="/" className="font-display text-xl tracking-wider text-foreground uppercase">
               BiasBuster
-            </span>
+            </Link>
           </div>
           <button className="p-1.5 hover:bg-gray-100 rounded">
             <MoreVertical className="w-4 h-4 text-gray-600" />
@@ -287,6 +286,29 @@ function WorkspaceLayoutInner({ children }: { children: React.ReactNode }) {
 }
 
 export default function WorkspaceLayout({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
+  const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const token = localStorage.getItem("access_token");
+    if (!token) {
+      router.replace("/authentication");
+    } else {
+      setIsAuthorized(true);
+    }
+  }, [router]);
+
+  if (isAuthorized === null) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center bg-gray-50 font-sans">
+        <div className="flex flex-col items-center gap-3">
+          <Brain className="w-12 h-12 stroke-[2.5] text-orange-500 animate-pulse" />
+          <span className="text-sm font-medium text-gray-500">Checking authorization...</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <WorkspaceProvider>
       <WorkspaceLayoutInner>{children}</WorkspaceLayoutInner>

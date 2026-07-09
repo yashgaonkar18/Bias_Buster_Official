@@ -183,10 +183,11 @@ def compute_fairness_metrics(
 
     dpd = float(np.mean(dpd_list)) if dpd_list else 0.0
     eod = float(np.mean(eod_list)) if eod_list else 0.0
-    di = float(np.mean(di_list)) if di_list else 0.0
+    dir_ratio = float(np.mean(di_list)) if di_list else 0.0
     fairness_score = 1.0 - (abs(dpd) + abs(eod)) / 2.0
 
-    return {"dpd": dpd, "eod": eod, "di": di, "fairness_score": fairness_score}
+    # Return keys consistent with evaluation engine (dir = disparate impact ratio)
+    return {"dpd": dpd, "eod": eod, "dir": dir_ratio, "fairness_score": fairness_score}
 
 
 def _evaluate_model(

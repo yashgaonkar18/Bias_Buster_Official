@@ -226,12 +226,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       if (err?.response?.data?.detail === "Workspace limit reached" || err?.response?.status === 400) {
         showToast("Workspace limit reached", "error");
       } else {
-        const newWS = { id: `ws-${Date.now()}`, name, is_favorite: false };
-        const updated = [...workspaces, newWS];
-        setWorkspaces(updated);
-        localStorage.setItem("bb_workspaces", JSON.stringify(updated));
-        selectWorkspace(newWS);
-        showToast("Workspace created", "success");
+        showToast(err?.response?.data?.detail || "Failed to create workspace", "error");
       }
     }
   };
@@ -246,14 +241,8 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         setSelectedWorkspace(prev => prev ? { ...prev, name: res.data.name } : null);
       }
       showToast("Workspace renamed", "success");
-    } catch (err) {
-      const updated = workspaces.map(w => w.id === id ? { ...w, name: newName } : w);
-      setWorkspaces(updated);
-      localStorage.setItem("bb_workspaces", JSON.stringify(updated));
-      if (selectedWorkspace?.id === id) {
-        setSelectedWorkspace(prev => prev ? { ...prev, name: newName } : null);
-      }
-      showToast("Workspace renamed", "success");
+    } catch (err: any) {
+      showToast(err?.response?.data?.detail || "Failed to rename workspace", "error");
     }
   };
 
@@ -267,14 +256,8 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         selectWorkspace(updated[0] || null);
       }
       showToast("Workspace deleted", "success");
-    } catch (err) {
-      const updated = workspaces.filter(w => w.id !== id);
-      setWorkspaces(updated);
-      localStorage.setItem("bb_workspaces", JSON.stringify(updated));
-      if (selectedWorkspace?.id === id) {
-        selectWorkspace(updated[0] || null);
-      }
-      showToast("Workspace deleted", "success");
+    } catch (err: any) {
+      showToast(err?.response?.data?.detail || "Failed to delete workspace", "error");
     }
   };
 
@@ -290,13 +273,8 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       if (selectedWorkspace?.id === id) {
         setSelectedWorkspace(prev => prev ? { ...prev, is_favorite: res.data.is_favorite } : null);
       }
-    } catch (err) {
-      const updated = workspaces.map(w => w.id === id ? { ...w, is_favorite: nextFavorite } : w);
-      setWorkspaces(updated);
-      localStorage.setItem("bb_workspaces", JSON.stringify(updated));
-      if (selectedWorkspace?.id === id) {
-        setSelectedWorkspace(prev => prev ? { ...prev, is_favorite: nextFavorite } : null);
-      }
+    } catch (err: any) {
+      showToast(err?.response?.data?.detail || "Failed to toggle favorite", "error");
     }
   };
 
@@ -310,13 +288,8 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       localStorage.setItem(`bb_experiments_${selectedWorkspace.id}`, JSON.stringify(updated));
       selectExperiment(res.data);
       showToast("Experiment created successfully", "success");
-    } catch (err) {
-      const newExp = { id: `exp-${Date.now()}`, workspace_id: selectedWorkspace.id, name };
-      const updated = [...experiments, newExp];
-      setExperiments(updated);
-      localStorage.setItem(`bb_experiments_${selectedWorkspace.id}`, JSON.stringify(updated));
-      selectExperiment(newExp);
-      showToast("Experiment created", "success");
+    } catch (err: any) {
+      showToast(err?.response?.data?.detail || "Failed to create experiment", "error");
     }
   };
 
@@ -331,14 +304,8 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         setSelectedExperiment(prev => prev ? { ...prev, name: res.data.name } : null);
       }
       showToast("Experiment renamed", "success");
-    } catch (err) {
-      const updated = experiments.map(e => e.id === id ? { ...e, name: newName } : e);
-      setExperiments(updated);
-      localStorage.setItem(`bb_experiments_${selectedWorkspace.id}`, JSON.stringify(updated));
-      if (selectedExperiment?.id === id) {
-        setSelectedExperiment(prev => prev ? { ...prev, name: newName } : null);
-      }
-      showToast("Experiment renamed", "success");
+    } catch (err: any) {
+      showToast(err?.response?.data?.detail || "Failed to rename experiment", "error");
     }
   };
 
@@ -353,14 +320,8 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         selectExperiment(updated[0] || null);
       }
       showToast("Experiment deleted", "success");
-    } catch (err) {
-      const updated = experiments.filter(e => e.id !== id);
-      setExperiments(updated);
-      localStorage.setItem(`bb_experiments_${selectedWorkspace.id}`, JSON.stringify(updated));
-      if (selectedExperiment?.id === id) {
-        selectExperiment(updated[0] || null);
-      }
-      showToast("Experiment deleted", "success");
+    } catch (err: any) {
+      showToast(err?.response?.data?.detail || "Failed to delete experiment", "error");
     }
   };
 

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -186,6 +186,7 @@ async def download_corrected_dataset(
 @router.get("/download-model/{correction_id}")
 async def download_corrected_model(
     correction_id: str,
+    format: str = Query(default="joblib", pattern="^(pkl|joblib)$"),
     session: AsyncSession = Depends(get_session),
 ):
     """
@@ -219,10 +220,15 @@ async def download_corrected_model(
                 status_code=404, detail="Corrected model file not found on server"
             )
 
+        if format == "pkl":
+            filename = cleanup_download_filename(f"{model_path.stem}.pkl")
+        else:
+            filename = cleanup_download_filename(f"{model_path.stem}.joblib")
+
         return FileResponse(
             path=model_path,
             media_type="application/octet-stream",
-            filename=cleanup_download_filename(model_path.name),
+            filename=filename,
         )
 
     except HTTPException:

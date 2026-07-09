@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, String, DateTime, JSON, Float, ForeignKey, Text
 from sqlalchemy.sql import func
+from sqlalchemy.orm import relationship
 from app.db import Base
 
 
@@ -54,6 +55,12 @@ class ExperimentRun(Base):
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
+    user_id = Column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+
+    user = relationship("User", back_populates="experiment_runs")
+
 
 class FairnessExperimentReport(Base):
     """Persisted downloadable report generated from fairness experiments."""
@@ -73,3 +80,9 @@ class FairnessExperimentReport(Base):
     json_path = Column(String, nullable=False)
     summary = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    user_id = Column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+
+    user = relationship("User", back_populates="fairness_experiment_reports")

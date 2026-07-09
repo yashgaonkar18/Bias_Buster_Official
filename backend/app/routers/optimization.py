@@ -1,6 +1,6 @@
 """Optimization API endpoints."""
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_session
@@ -108,6 +108,7 @@ import os
 @router.get("/optimize/download/{optimization_id}")
 async def download_optimized_model(
     optimization_id: str,
+    format: str = Query(default="joblib", pattern="^(pkl|joblib)$"),
     session: AsyncSession = Depends(get_session),
 ):
     """Download an optimized model."""
@@ -125,8 +126,17 @@ async def download_optimized_model(
     if not record.artifact_path or not os.path.exists(record.artifact_path):
         raise HTTPException(status_code=404, detail="Optimized model file not found")
 
+    if format == "pkl":
+        filename = cleanup_download_filename(
+            f"{os.path.splitext(os.path.basename(record.artifact_path))[0]}.pkl"
+        )
+    else:
+        filename = cleanup_download_filename(
+            f"{os.path.splitext(os.path.basename(record.artifact_path))[0]}.joblib"
+        )
+
     return FileResponse(
         path=record.artifact_path,
         media_type="application/octet-stream",
-        filename=cleanup_download_filename(os.path.basename(record.artifact_path)),
+        filename=filename,
     )

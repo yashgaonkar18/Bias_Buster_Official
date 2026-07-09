@@ -1,4 +1,15 @@
-from sqlalchemy import Column, Integer, String, DateTime, JSON, Boolean, Float, Text
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    DateTime,
+    JSON,
+    Boolean,
+    Float,
+    Text,
+    ForeignKey,
+)
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from ..db import Base
 
@@ -17,6 +28,11 @@ class UploadRecord(Base):
     model_type = Column(String)
     model_supports_predict_proba = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    user_id = Column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+
+    user = relationship("User", back_populates="uploads")
 
 
 class CorrectionRecord(Base):
@@ -54,6 +70,12 @@ class CorrectionRecord(Base):
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
+    user_id = Column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+
+    user = relationship("User", back_populates="corrections")
+
 
 class OptimizationRun(Base):
     __tablename__ = "optimization_runs"
@@ -78,9 +100,15 @@ class OptimizationRun(Base):
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
+    user_id = Column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+
+    user = relationship("User", back_populates="optimizations")
+
 
 class ModelRegistry(Base):
-    __tablename__ = "model_registry"
+    __tablename__ = "model_registery"
 
     id = Column(Integer, primary_key=True, index=True)
     model_id = Column(String, unique=True, nullable=False, index=True)  # UUID
@@ -138,3 +166,9 @@ class ModelRegistry(Base):
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    user_id = Column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+
+    user = relationship("User", back_populates="models")

@@ -24,7 +24,10 @@ from app.utils.model_validation import (
 )
 from app.utils.bias_decision import evaluate_bias
 from app.utils.mitigation.strategy_recommender import recommend_strategy
-from app.utils.fairness.evaluation_engine import evaluate_model_fairness, compute_fairness_metrics
+from app.utils.fairness.evaluation_engine import (
+    evaluate_model_fairness,
+    compute_fairness_metrics,
+)
 from app.schemas.model_registry import RegisterModelRequest
 from app.services.model_registry_service import ModelRegistryService
 import os
@@ -39,9 +42,6 @@ from app.utils.fairness_metrics import (
 from app.utils.bias_decision import evaluate_bias
 from fairlearn.postprocessing import ThresholdOptimizer
 from sklearn.pipeline import Pipeline
-
-
-
 
 
 async def run_strategy_recommendation(payload, session: AsyncSession):
@@ -75,13 +75,20 @@ async def run_strategy_recommendation(payload, session: AsyncSession):
             "dpd": round(aggregate["dpd"], 4),
             "eod": round(aggregate["eod"], 4),
             "di": round(aggregate["dir"], 4),
+            "dir": round(aggregate["dir"], 4),
             "fairness_score": round(aggregate["fairness_score"], 4),
+            "accuracy": round(
+                eval_result.get("performance", {}).get("accuracy", 0.0), 4
+            ),
         },
         "dataset_analysis": {
             "prediction_skew": round(
                 abs(
-                    (sum(diagnostics["prediction_distribution"].values()) and diagnostics["prediction_distribution"].get(1, 0)
-                     / max(1, sum(diagnostics["prediction_distribution"].values())))
+                    (
+                        sum(diagnostics["prediction_distribution"].values())
+                        and diagnostics["prediction_distribution"].get(1, 0)
+                        / max(1, sum(diagnostics["prediction_distribution"].values()))
+                    )
                     - 0.5
                 )
                 * 2,
@@ -129,8 +136,13 @@ async def run_strategy_recommendation(payload, session: AsyncSession):
             "dataset_analysis": {
                 "prediction_skew": round(
                     abs(
-                        (sum(diagnostics["prediction_distribution"].values()) and diagnostics["prediction_distribution"].get(1, 0)
-                         / max(1, sum(diagnostics["prediction_distribution"].values())))
+                        (
+                            sum(diagnostics["prediction_distribution"].values())
+                            and diagnostics["prediction_distribution"].get(1, 0)
+                            / max(
+                                1, sum(diagnostics["prediction_distribution"].values())
+                            )
+                        )
                         - 0.5
                     )
                     * 2,
@@ -166,7 +178,9 @@ async def run_strategy_recommendation(payload, session: AsyncSession):
     )
     ranking_results = await run_mitigation_ranking(ranking_payload, session)
 
-    if ranking_results.get("status") == "success" and ranking_results.get("ranked_strategies"):
+    if ranking_results.get("status") == "success" and ranking_results.get(
+        "ranked_strategies"
+    ):
         ranked_strategies = ranking_results["ranked_strategies"]
         best_tradeoff = ranked_strategies[0]
         fairness_best = max(ranked_strategies, key=lambda x: x["fairness_improvement"])
@@ -174,22 +188,40 @@ async def run_strategy_recommendation(payload, session: AsyncSession):
 
         heuristic_strategy = recommendation.get("recommended_strategy", "none")
         base_confidence = recommendation.get("confidence_score", 50)
-        
+
         is_consistent = heuristic_strategy == best_tradeoff["strategy"]
         consistency_bonus = 20 if is_consistent else -10
-        
-        confidence_score = min(99, max(1, base_confidence + consistency_bonus + (best_tradeoff["combined_score"] * 30)))
-        
-        final_reasoning = f"Simulated mitigation validated {best_tradeoff['strategy']} as the optimal approach, " \
-                          f"achieving a fairness score improvement of {best_tradeoff['fairness_improvement']:.2%} " \
-                          f"with only a {best_tradeoff['accuracy_drop']:.2%} accuracy tradeoff."
-                          
-        if not is_consistent and heuristic_strategy != "none":
-            final_reasoning = f"While initial heuristics suggested {heuristic_strategy}, " \
-                              f"empirical simulation ranked {best_tradeoff['strategy']} higher due to better performance retention."
 
-        dpd_reduction = best_tradeoff["metrics_before"]["fairness"]["aggregate"]["dpd"] - best_tradeoff["metrics_after"]["fairness"]["aggregate"]["dpd"]
-        eod_reduction = best_tradeoff["metrics_before"]["fairness"]["aggregate"]["eod"] - best_tradeoff["metrics_after"]["fairness"]["aggregate"]["eod"]
+        confidence_score = min(
+            99,
+            max(
+                1,
+                base_confidence
+                + consistency_bonus
+                + (best_tradeoff["combined_score"] * 30),
+            ),
+        )
+
+        final_reasoning = (
+            f"Simulated mitigation validated {best_tradeoff['strategy']} as the optimal approach, "
+            f"achieving a fairness score improvement of {best_tradeoff['fairness_improvement']:.2%} "
+            f"with only a {best_tradeoff['accuracy_drop']:.2%} accuracy tradeoff."
+        )
+
+        if not is_consistent and heuristic_strategy != "none":
+            final_reasoning = (
+                f"While initial heuristics suggested {heuristic_strategy}, "
+                f"empirical simulation ranked {best_tradeoff['strategy']} higher due to better performance retention."
+            )
+
+        dpd_reduction = (
+            best_tradeoff["metrics_before"]["fairness"]["aggregate"]["dpd"]
+            - best_tradeoff["metrics_after"]["fairness"]["aggregate"]["dpd"]
+        )
+        eod_reduction = (
+            best_tradeoff["metrics_before"]["fairness"]["aggregate"]["eod"]
+            - best_tradeoff["metrics_after"]["fairness"]["aggregate"]["eod"]
+        )
 
         return {
             "status": "success",
@@ -203,7 +235,7 @@ async def run_strategy_recommendation(payload, session: AsyncSession):
                 "validated_improvements": {
                     "dpd_reduction": round(max(0, dpd_reduction), 4),
                     "eod_reduction": round(max(0, eod_reduction), 4),
-                    "accuracy_tradeoff": round(best_tradeoff["accuracy_drop"], 4)
+                    "accuracy_tradeoff": round(best_tradeoff["accuracy_drop"], 4),
                 },
                 "best_tradeoff_strategy": best_tradeoff["strategy"],
                 "fairness_best_strategy": fairness_best["strategy"],
@@ -212,7 +244,7 @@ async def run_strategy_recommendation(payload, session: AsyncSession):
                 "strategy_comparison_matrix": ranked_strategies,
                 "recommendation_consistency_score": consistency_bonus + 50,
                 "explanation_summary": recommendation.get("explanation", ""),
-            }
+            },
         }
     else:
         return {
@@ -322,7 +354,9 @@ async def run_bias_detection(
     # STEP 9: Auto-register original model in registry
     # -------------------------------------------------
     try:
-        existing_models = await ModelRegistryService.get_models_by_upload(payload.upload_id, session)
+        existing_models = await ModelRegistryService.get_models_by_upload(
+            payload.upload_id, session
+        )
         if not any(m.source_type == "original" for m in existing_models):
             # Register original model
             metrics_aggregate = eval_result["fairness"]["aggregate"]
@@ -331,13 +365,26 @@ async def run_bias_detection(
                 model_name=f"original_model_{record.model_type}",
                 model_type=record.model_type,
                 source_type="original",
-                artifact_path=str(Path(settings.ARTIFACT_DIR) / "uploads" / "models" / record.model_filename),
-                artifact_size_bytes=os.path.getsize(str(Path(settings.ARTIFACT_DIR) / "uploads" / "models" / record.model_filename)),
+                artifact_path=str(
+                    Path(settings.ARTIFACT_DIR)
+                    / "uploads"
+                    / "models"
+                    / record.model_filename
+                ),
+                artifact_size_bytes=os.path.getsize(
+                    str(
+                        Path(settings.ARTIFACT_DIR)
+                        / "uploads"
+                        / "models"
+                        / record.model_filename
+                    )
+                ),
                 performance_metrics=eval_result["performance"],
                 fairness_metrics=metrics_aggregate,
-                combined_score=(0.6 * metrics_aggregate.get("fairness_score", 0.5)) + (0.4 * eval_result["performance"].get("accuracy", 0.5)),
+                combined_score=(0.6 * metrics_aggregate.get("fairness_score", 0.5))
+                + (0.4 * eval_result["performance"].get("accuracy", 0.5)),
                 version="v1_original",
-                tags=["auto_registered"]
+                tags={"auto_registered": "true"},
             )
             await ModelRegistryService.register_model(registry_payload, session)
     except Exception as e:
@@ -346,6 +393,7 @@ async def run_bias_detection(
     # -------------------------------------------------
     # STEP 10: Final response
     # -------------------------------------------------
+    # Include baseline performance (accuracy) and keep both 'di' and 'dir' keys for compatibility
     return {
         "status": "success",
         "dataset_health": dataset_health,
@@ -355,9 +403,13 @@ async def run_bias_detection(
             "dpd": round(eval_result["fairness"]["aggregate"]["dpd"], 4),
             "eod": round(eval_result["fairness"]["aggregate"]["eod"], 4),
             "di": round(eval_result["fairness"]["aggregate"]["dir"], 4),
+            "dir": round(eval_result["fairness"]["aggregate"]["dir"], 4),
             "fairness_score": round(
                 eval_result["fairness"]["aggregate"]["fairness_score"],
                 4,
+            ),
+            "accuracy": round(
+                eval_result.get("performance", {}).get("accuracy", 0.0), 4
             ),
         },
         "bias_present": max_severity > 0,
@@ -456,15 +508,22 @@ async def apply_bias_correction(payload, session: AsyncSession):
                 temp_df[sensitive] = temp_df[sensitive].astype(str)
 
         fairness_result = compute_fairness_metrics(
-            np.asarray(y_true),
-            np.asarray(corrected_y_pred),
-            temp_df[sensitive_columns]
+            np.asarray(y_true), np.asarray(corrected_y_pred), temp_df[sensitive_columns]
         )
         corrected_metrics = fairness_result["by_attribute"]
 
-        original_fairness_score = baseline_eval["fairness"]["aggregate"]["fairness_score"]
+        original_fairness_score = baseline_eval["fairness"]["aggregate"][
+            "fairness_score"
+        ]
         corrected_fairness_score = fairness_result["aggregate"]["fairness_score"]
-        improvement_pct = max(0.0, (corrected_fairness_score - original_fairness_score) / max(original_fairness_score, 1e-6)) * 100
+        improvement_pct = (
+            max(
+                0.0,
+                (corrected_fairness_score - original_fairness_score)
+                / max(original_fairness_score, 1e-6),
+            )
+            * 100
+        )
 
         result = {
             "strategy_id": strategy_id,
@@ -473,11 +532,19 @@ async def apply_bias_correction(payload, session: AsyncSession):
             "corrected_fairness_score": round(corrected_fairness_score, 4),
             "improvement": round(improvement_pct, 2),
             "metrics_before": {
-                k: {kk: round(vv, 4) for kk, vv in v.items() if kk in ["dpd", "eod", "dir"]}
+                k: {
+                    kk: round(vv, 4)
+                    for kk, vv in v.items()
+                    if kk in ["dpd", "eod", "dir"]
+                }
                 for k, v in baseline_eval["fairness"]["by_attribute"].items()
             },
             "metrics_after": {
-                k: {kk: round(vv, 4) for kk, vv in v.items() if kk in ["dpd", "eod", "dir"]}
+                k: {
+                    kk: round(vv, 4)
+                    for kk, vv in v.items()
+                    if kk in ["dpd", "eod", "dir"]
+                }
                 for k, v in corrected_metrics.items()
             },
             "recommendation": "Recommended" if improvement_pct > 5 else "Consider",

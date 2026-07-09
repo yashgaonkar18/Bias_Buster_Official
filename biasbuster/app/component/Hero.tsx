@@ -1,8 +1,22 @@
+"use client";
+
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Ripple } from "@/components/ui/ripple"
 import { ChevronRight, Cpu, Shield, Database } from "lucide-react";
 
 export function Hero() {
+    const router = useRouter();
+
+    const handleGetStarted = () => {
+        const token = localStorage.getItem("access_token");
+        if (token) {
+            router.push("/dashboard");
+        } else {
+            router.push("/authentication?mode=signup");
+        }
+    };
+
     return (
         <section className="relative min-h-screen pt-32 pb-20 overflow-hidden flex flex-col justify-center items-center">
             <Ripple />
@@ -60,7 +74,11 @@ export function Hero() {
                 </p>
 
                 <div className="flex flex-col sm:flex-row items-center gap-6 mb-20">
-                    <Button size="lg" className="h-12 px-8 bg-foreground text-background hover:bg-foreground/90 rounded-md font-mono text-xs font-bold uppercase tracking-widest shadow-xl">
+                    <Button
+                        size="lg"
+                        onClick={handleGetStarted}
+                        className="h-12 px-8 bg-foreground text-background hover:bg-foreground/90 rounded-md font-mono text-xs font-bold uppercase tracking-widest shadow-xl"
+                    >
                         <ChevronRight className="size-3 mr-2" />
                         Get Started
                     </Button>
