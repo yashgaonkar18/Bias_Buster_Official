@@ -127,7 +127,6 @@ const BiasSummary = ({ report }: { report: any }) => (
     <h3 className="text-lg font-bold">
       {report.bias_present ? "Bias Detected" : "No Significant Bias"}
     </h3>
-
     <div className="grid grid-cols-3 gap-4 mt-4 text-sm">
       <InfoRow label="Primary Driver" value={report.bias_driver ?? "—"} />
       <InfoRow
@@ -139,6 +138,19 @@ const BiasSummary = ({ report }: { report: any }) => (
         value={report.bias_present ? "Mitigation Required" : "Approved"}
       />
     </div>
+
+    {/* Summary metrics: prefer computed_metrics (detection) but fall back to common paths */}
+    {(() => {
+      const cm = report.computed_metrics ?? report.metrics ?? report;
+      return (
+        <div className="grid grid-cols-4 gap-4 mt-4 text-sm">
+          <MetricRow name="DPD" value={cm?.dpd ?? cm?.spd ?? null} />
+          <MetricRow name="EOD" value={cm?.eod ?? null} />
+          <MetricRow name="DIR" value={cm?.dir ?? cm?.di ?? null} />
+          <MetricRow name="Accuracy" value={cm?.accuracy ?? null} />
+        </div>
+      );
+    })()}
   </div>
 );
 
@@ -1212,11 +1224,7 @@ export default function BiasBuster() {
   const [preprocessedDataset, setPreprocessedDataset] = useState<
     DatasetRow[] | null
   >(null);
-  const [biasResults, setBiasResults] = useState<{
-    spd?: number;
-    di?: number;
-    details?: Array<{ group: string; rate: number; total: number }>;
-  } | null>(null);
+  const [biasResults, setBiasResults] = useState<any | null>(null);
 
   // Very small CSV parser (handles simple CSVs without multiline quoted fields)
 
@@ -1344,11 +1352,12 @@ export default function BiasBuster() {
         "Run preprocessing (impute or remove nulls) before detection",
       );
     if (biasResults) {
-      if (Math.abs(biasResults.spd ?? 0) > 0.1)
+      const cm = biasResults.computed_metrics ?? biasResults;
+      if (Math.abs(cm?.spd ?? cm?.dpd ?? 0) > 0.1)
         suggestions.push(
           "Apply reweighting or resampling to reduce Statistical Parity Difference",
         );
-      if ((biasResults.di ?? 1) < 0.8)
+      if ((cm?.dir ?? cm?.di ?? 1) < 0.8)
         suggestions.push(
           "Consider Disparate Impact Remover preprocessing or reweighing",
         );
@@ -2331,6 +2340,13 @@ export default function BiasBuster() {
                       mitigationResults.metrics_before?.fairness?.aggregate?.eod
                     }
                   />
+                  <MetricRow
+                    name="DIR"
+                    value={
+                      mitigationResults.metrics_before?.dir ||
+                      mitigationResults.metrics_before?.fairness?.aggregate?.dir
+                    }
+                  />
                 </div>
               </div>
 
@@ -2385,6 +2401,17 @@ export default function BiasBuster() {
                       mitigationResults.metrics_before?.fairness?.aggregate?.eod
                     }
                   />
+                  <MetricRow
+                    name="DIR"
+                    value={
+                      mitigationResults.metrics_after?.dir ||
+                      mitigationResults.metrics_after?.fairness?.aggregate?.dir
+                    }
+                    baselineValue={
+                      mitigationResults.metrics_before?.dir ||
+                      mitigationResults.metrics_before?.fairness?.aggregate?.dir
+                    }
+                  />
                 </div>
 
                 {/* Mini Comparison */}
@@ -2429,6 +2456,10 @@ export default function BiasBuster() {
                           mitigationResults.metrics_before?.eod ||
                           mitigationResults.metrics_before?.fairness?.aggregate
                             ?.eod,
+                        dir:
+                          mitigationResults.metrics_before?.dir ||
+                          mitigationResults.metrics_before?.fairness?.aggregate
+                            ?.dir,
                       },
                       {
                         label: "Mitigated Model",
@@ -2449,6 +2480,10 @@ export default function BiasBuster() {
                           mitigationResults.metrics_after?.eod ||
                           mitigationResults.metrics_after?.fairness?.aggregate
                             ?.eod,
+                        dir:
+                          mitigationResults.metrics_after?.dir ||
+                          mitigationResults.metrics_after?.fairness?.aggregate
+                            ?.dir,
                       },
                       ...(optimizationResults
                         ? [
@@ -2468,6 +2503,8 @@ export default function BiasBuster() {
                                 ?.aggregate?.dpd,
                               eod: optimizationResults.optimized_model?.fairness
                                 ?.aggregate?.eod,
+                              dir: optimizationResults.optimized_model?.fairness
+                                ?.aggregate?.dir,
                             },
                           ]
                         : []),
@@ -2516,6 +2553,14 @@ export default function BiasBuster() {
                             <span className="font-semibold text-gray-800">
                               {typeof item.eod === "number"
                                 ? item.eod.toFixed(3)
+                                : "-"}
+                            </span>
+                          </div>
+                          <div>
+                            DIR:{" "}
+                            <span className="font-semibold text-gray-800">
+                              {typeof item.dir === "number"
+                                ? item.dir.toFixed(3)
                                 : "-"}
                             </span>
                           </div>
