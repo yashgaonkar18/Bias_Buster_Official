@@ -35,6 +35,8 @@ from app.utils.mitigation.recommender import recommend_strategy
 from app.models.mitigation_ranking import MitigationRanking
 from app.schemas.model_registry import RegisterModelRequest
 from app.services.model_registry_service import ModelRegistryService
+from app.schemas.model_registry import RegisterModelRequest
+from app.services.model_registry_service import ModelRegistryService
 
 from app.schemas.bias import BiasDetectRequest
 from app.utils.target_encoder import encode_target_column
@@ -310,6 +312,9 @@ def _compute_fairness_improvement(
 
     dpd_reduction = float(max(0.0, before_fairness["dpd"] - after_fairness["dpd"]))
     eod_reduction = float(max(0.0, before_fairness["eod"] - after_fairness["eod"]))
+    fairness_score_gain = float(
+        max(0.0, after_fairness["fairness_score"] - before_fairness["fairness_score"])
+    )
     fairness_score_gain = float(
         max(0.0, after_fairness["fairness_score"] - before_fairness["fairness_score"])
     )
@@ -589,6 +594,7 @@ async def run_bias_mitigation(payload, session):
         # STEP 10: Compute improvements and save artifacts
         # ============================================
         fairness_improvement = _compute_fairness_improvement(baseline_eval, after_eval)
+        fairness_improvement = _compute_fairness_improvement(baseline_eval, after_eval)
         performance_impact = _compute_performance_impact(baseline_eval, after_eval)
 
         tradeoff_analysis = _generate_tradeoff_analysis(
@@ -625,50 +631,16 @@ async def run_bias_mitigation(payload, session):
             artifact_dataset_path=artifact_dataset_path,
         )
         session.add(mitigation_run)
+        mitigation_run = BiasMitigationRun(
+            upload_id=payload.upload_id,
+            sensitive_attribute=",".join(payload.sensitive_columns),
+            strategy_used=strategy_name,
+            config=payload.strategy_config,
+            artifact_model_path=artifact_model_path,
+            artifact_dataset_path=artifact_dataset_path,
+        )
+        session.add(mitigation_run)
         await session.commit()
-
-        # Register mitigated model to the central registry for compare/dashboard workflows.
-        try:
-            mitigated_model_type = type(model_mitigated).__name__
-            registry_payload = RegisterModelRequest(
-                upload_id=payload.upload_id,
-                model_name=f"{mitigated_model_type}_mitigated_{strategy_name}",
-                model_type=mitigated_model_type,
-                source_type="mitigated",
-                parent_model_id=None,
-                mitigation_strategy=strategy_name,
-                artifact_path=artifact_model_path,
-                artifact_size_bytes=(
-                    os.path.getsize(artifact_model_path)
-                    if os.path.isfile(artifact_model_path)
-                    else None
-                ),
-                performance_metrics=after_eval.get("performance", {}),
-                fairness_metrics=after_eval.get("fairness", {}).get("aggregate", {}),
-                operational_metrics={
-                    "model_size_bytes": (
-                        os.path.getsize(artifact_model_path)
-                        if os.path.isfile(artifact_model_path)
-                        else None
-                    )
-                },
-                combined_score=(
-                    0.6
-                    * after_eval.get("fairness", {})
-                    .get("aggregate", {})
-                    .get("fairness_score", 0.0)
-                    + 0.4 * after_eval.get("performance", {}).get("accuracy", 0.0)
-                ),
-                version=f"v1_mitigated_{strategy_name}",
-                experiment_id=str(mitigation_run.id),
-            )
-            await ModelRegistryService.register_model(registry_payload, session)
-        except Exception as registry_error:
-            logger.warning(
-                "[mitigation:%s] Failed to register mitigated model in registry: %s",
-                trace_id,
-                str(registry_error),
-            )
 
         # ============================================
         # STEP 10: Return comprehensive report
@@ -676,6 +648,7 @@ async def run_bias_mitigation(payload, session):
         return {
             "status": "success",
             "trace_id": trace_id,
+            "mitigation_id": mitigation_run.id,
             "mitigation_id": mitigation_run.id,
             "strategy_applied": strategy_name,
             "metrics_before": baseline_eval,
@@ -686,6 +659,14 @@ async def run_bias_mitigation(payload, session):
             "artifacts": {
                 "corrected_dataset": artifact_dataset_path,
                 "model_path": artifact_model_path,
+            },
+            "download_endpoints": {
+                "model": f"/api/bias/mitigate/download-model/{payload.upload_id}?strategy={strategy_name}&mitigation_id={mitigation_run.id}",
+                "dataset": (
+                    f"/api/bias/mitigate/download-dataset/{payload.upload_id}?strategy={strategy_name}&mitigation_id={mitigation_run.id}"
+                    if artifact_dataset_path
+                    else None
+                ),
             },
             "download_endpoints": {
                 "model": f"/api/bias/mitigate/download-model/{payload.upload_id}?strategy={strategy_name}&mitigation_id={mitigation_run.id}",
