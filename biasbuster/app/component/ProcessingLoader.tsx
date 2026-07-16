@@ -82,8 +82,8 @@ export default function ProcessingLoader({
             <div className="flex items-start gap-5">
               {/* Loader */}
               <div className="relative flex-shrink-0">
-                <div className="w-14 h-14 rounded-2xl border-4 border-orange-100"></div>
-                <div className="absolute inset-0 rounded-2xl border-4 border-orange-500 border-t-transparent animate-spin"></div>
+                <div className="w-14 h-14 rounded-2xl border-4 border-orange-100" />
+                <div className="absolute inset-0 rounded-2xl border-4 border-orange-500 border-t-transparent animate-spin" />
               </div>
 
               {/* Text */}
@@ -96,39 +96,7 @@ export default function ProcessingLoader({
                 </p>
 
                 <div className="mt-5 inline-flex items-center gap-2 rounded-full bg-orange-50 border border-orange-100 px-4 py-2">
-                  <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></div>
-                  <span className="text-sm font-medium text-orange-700">
-                    {step}
-                  </span>
-                </div>
-              </div>
-            </div>
-    <div className="min-h-[600px] flex items-center justify-center">
-      <div className="w-full max-w-2xl">
-        <div className="rounded-3xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-          {/* Top Accent */}
-          <div className="h-1 w-full bg-gradient-to-r from-orange-500 via-red-500 to-orange-400" />
-
-          <div className="p-10">
-            {/* Header */}
-            <div className="flex items-start gap-5">
-              {/* Loader */}
-              <div className="relative flex-shrink-0">
-                <div className="w-14 h-14 rounded-2xl border-4 border-orange-100"></div>
-                <div className="absolute inset-0 rounded-2xl border-4 border-orange-500 border-t-transparent animate-spin"></div>
-              </div>
-
-              {/* Text */}
-              <div className="flex-1">
-                <h2 className="text-2xl font-bold text-gray-900">
-                  {current.title}
-                </h2>
-                <p className="mt-2 text-sm text-gray-500 leading-relaxed">
-                  {current.description}
-                </p>
-
-                <div className="mt-5 inline-flex items-center gap-2 rounded-full bg-orange-50 border border-orange-100 px-4 py-2">
-                  <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></div>
+                  <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
                   <span className="text-sm font-medium text-orange-700">
                     {step}
                   </span>
@@ -147,21 +115,7 @@ export default function ProcessingLoader({
                 </span>
               </div>
               <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
-                <div className="h-full w-2/3 bg-gradient-to-r from-orange-500 to-red-500 rounded-full animate-pulse"></div>
-              </div>
-            </div>
-            {/* Progress */}
-            <div className="mt-10">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Progress
-                </span>
-                <span className="text-xs font-semibold text-gray-700">
-                  Processing
-                </span>
-              </div>
-              <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
-                <div className="h-full w-2/3 bg-gradient-to-r from-orange-500 to-red-500 rounded-full animate-pulse"></div>
+                <div className="h-full w-2/3 bg-gradient-to-r from-orange-500 to-red-500 rounded-full animate-pulse" />
               </div>
             </div>
 
@@ -173,23 +127,7 @@ export default function ProcessingLoader({
                   className="rounded-2xl border border-gray-100 bg-gray-50 px-4 py-4"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-2 h-2 rounded-full bg-orange-500"></div>
-                    <span className="text-sm font-medium text-gray-700">
-                      {item}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-            {/* Steps */}
-            <div className="mt-10 grid grid-cols-2 gap-4">
-              {current.steps.map((item, idx) => (
-                <div
-                  key={idx}
-                  className="rounded-2xl border border-gray-100 bg-gray-50 px-4 py-4"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-2 h-2 rounded-full bg-orange-500"></div>
+                    <div className="w-2 h-2 rounded-full bg-orange-500" />
                     <span className="text-sm font-medium text-gray-700">
                       {item}
                     </span>
