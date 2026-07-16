@@ -58,9 +58,3 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
-
-# Alembic
-alembic.ini.bak
-alembic.ini.tmp
-*.pyc
-__pycache__/
