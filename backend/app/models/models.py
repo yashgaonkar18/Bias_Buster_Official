@@ -34,8 +34,8 @@ class UploadRecord(Base):
 
     user = relationship("User", back_populates="uploads")
     
-    experiment_id = Column(Integer, ForeignKey("experiments.id", ondelete="CASCADE"), nullable=True, index=True)
-    experiment = relationship("Experiment", back_populates="uploads")
+    experiment_id = Column(Integer, ForeignKey("dashboard_experiments.id", ondelete="CASCADE"), nullable=True, index=True)
+    experiment = relationship("DashboardExperiment", back_populates="uploads")
 
 class CorrectionRecord(Base):
     __tablename__ = "correction_records"

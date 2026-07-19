@@ -305,7 +305,7 @@ def evaluate_model_fairness(
 
     sensitive_for_prediction = None
     if isinstance(model, ThresholdOptimizer):
-        primary_sensitive = normalized_sensitive[0]
+        primary_sensitive = getattr(model, "applied_attr_", normalized_sensitive[0])
         sensitive_for_prediction = prepared_df[primary_sensitive]
 
     pred_result = generate_predictions(model, X, sensitive_for_prediction)

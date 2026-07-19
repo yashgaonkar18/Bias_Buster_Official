@@ -1,4 +1,5 @@
 import os
+# pyrefly: ignore [missing-import]
 import joblib
 import logging
 import asyncio
@@ -948,6 +949,7 @@ def _apply_threshold_for_mitigation(
                 sensitive_train=sensitive_train,
                 grid_size=grid_size,
             )
+            model.applied_attr_ = applied_attr
             logger.info(f"Threshold optimization applied to attribute '{applied_attr}'")
         except Exception as e:
             raise ValueError(f"Threshold optimization failed: {str(e)}") from e

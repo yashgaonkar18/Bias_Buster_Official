@@ -188,7 +188,7 @@ async def run_strategy_recommendation(payload, session: AsyncSession):
         accuracy_best = min(ranked_strategies, key=lambda x: x["accuracy_drop"])
 
         heuristic_strategy = recommendation.get("recommended_strategy", "none")
-        base_confidence = recommendation.get("confidence_score", 50)
+        base_confidence = recommendation.get("confidence_score", 0.5) * 100
 
         is_consistent = heuristic_strategy == best_tradeoff["strategy"]
         consistency_bonus = 20 if is_consistent else -10
@@ -224,6 +224,17 @@ async def run_strategy_recommendation(payload, session: AsyncSession):
             - best_tradeoff["metrics_after"]["fairness"]["aggregate"]["eod"]
         )
 
+        # Find the correct explanation from the ranked heuristic strategies, or generate one
+        matching_heuristic = next(
+            (s for s in recommendation.get("ranked_strategies", []) if s["name"] == best_tradeoff["strategy"]), 
+            None
+        )
+        
+        if matching_heuristic:
+            correct_explanation = matching_heuristic.get("reason", "")
+        else:
+            correct_explanation = recommendation.get("explanation_summary", "")
+
         return {
             "status": "success",
             "computed_metrics": prepared["computed_metrics"],
@@ -234,8 +245,8 @@ async def run_strategy_recommendation(payload, session: AsyncSession):
                 "recommendation_reasoning": final_reasoning,
                 "strategy_rankings": ranked_strategies,
                 "validated_improvements": {
-                    "dpd_reduction": round(max(0, dpd_reduction), 4),
-                    "eod_reduction": round(max(0, eod_reduction), 4),
+                    "dpd_reduction": round(dpd_reduction, 4),
+                    "eod_reduction": round(eod_reduction, 4),
                     "accuracy_tradeoff": round(best_tradeoff["accuracy_drop"], 4),
                 },
                 "best_tradeoff_strategy": best_tradeoff["strategy"],
@@ -244,7 +255,7 @@ async def run_strategy_recommendation(payload, session: AsyncSession):
                 "overall_best_strategy": best_tradeoff["strategy"],
                 "strategy_comparison_matrix": ranked_strategies,
                 "recommendation_consistency_score": consistency_bonus + 50,
-                "explanation_summary": recommendation.get("explanation_summary", ""),
+                "explanation_summary": correct_explanation,
             },
         }
     else:

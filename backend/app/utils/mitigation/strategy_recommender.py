@@ -799,14 +799,14 @@ def _explain_strategy(
             f"High demographic parity and/or opportunity difference detected for {attr_desc}. "
             f"Threshold Optimizer adjusts decision boundaries to achieve group fairness. "
             f"Applicability: {'Excellent' if len(biased_attributes) == 1 else 'Moderate'} for {'single' if len(biased_attributes) == 1 else 'multiple'} attribute(s). "
-            f"Trade-off: ~2% accuracy loss for significant fairness improvement."
+            f"Trade-off: Balances accuracy loss for significant fairness improvement."
         )
 
     elif strategy_name == "reweighting":
         return (
             f"Multiple fairness violations across {len(biased_attributes)} attributed(s). "
             f"Reweighting adjusts sample weights to balance representation of protected groups. "
-            f"Applicability: Excellent for multi-attribute fairness with minimal accuracy trade-off (~0.3%). "
+            f"Applicability: Excellent for multi-attribute fairness. "
             f"Suitable when threshold cannot address all attributes simultaneously."
         )
 
@@ -815,7 +815,7 @@ def _explain_strategy(
             f"SMOTE oversamples minority class to improve representation. "
             f"Applicability: Limited for direct fairness improvement. "
             f"Use only if severe class imbalance (minority <10%) is detected. "
-            f"Trade-off: ~4% accuracy loss with uncertain fairness gains."
+            f"Trade-off: Potential accuracy loss with uncertain fairness gains."
         )
 
     else:  # "none"
@@ -850,8 +850,8 @@ def _generate_summary_explanation(
         return (
             f"Threshold Optimizer is recommended because demographic parity and equal opportunity differences "
             f"are most pronounced in {attr_desc}{' (avg DPD: ' + f'{avg_dpd:.2f}' + ')' if num_attrs == 1 else ''}. "
-            f"Threshold adjustment offers the best balance between fairness improvement (~60% DPD reduction) "
-            f"and minimal accuracy trade-off (~2%). "
+            f"Threshold adjustment offers a strong balance between fairness improvement "
+            f"and minimal accuracy trade-off. "
             f"This post-processing approach adjusts decision thresholds to achieve group fairness "
             f"without retraining the model."
         )
@@ -860,9 +860,8 @@ def _generate_summary_explanation(
         return (
             f"Reweighting is recommended because fairness disparities span multiple attributes ({attr_desc}). "
             f"This in-training approach adjusts sample weights to balance group representation, achieving "
-            f"fairness improvements (~25% DPD reduction) with minimal accuracy loss (~0.3%). "
-            f"Reweighting is most effective when disparities exist across multiple demographic dimensions "
-            f"and you want to preserve model performance."
+            f"fairness improvements while seeking to preserve model performance. "
+            f"Reweighting is most effective when disparities exist across multiple demographic dimensions."
         )
 
     elif top_strategy == "smote":
@@ -1068,8 +1067,7 @@ def _get_strategy_reasoning_legacy(strategy: str, attributes: List[str]) -> str:
         return (
             f"Threshold Optimizer recommended for {attributes[0] if attributes else 'target'} attribute. "
             "This strategy adjusts decision thresholds to achieve demographic parity and equalized odds. "
-            "Best results when selection rate disparities are primary unfairness driver. "
-            "Empirical testing shows 59% DPD improvement on similar attributes with 2% accuracy trade-off."
+            "Best results when selection rate disparities are primary unfairness driver."
         )
 
     elif strategy == "reweighting":
@@ -1077,7 +1075,6 @@ def _get_strategy_reasoning_legacy(strategy: str, attributes: List[str]) -> str:
             f"Reweighting recommended for {len(attributes)} biased attribute(s). "
             "This strategy adjusts sample weights during model training to balance fairness across all groups. "
             "Effective when disparities exist across multiple demographic attributes. "
-            "Empirical testing shows 25% DPD improvement with only 0.3% accuracy loss. "
             "Better preserves model accuracy than other methods."
         )
 

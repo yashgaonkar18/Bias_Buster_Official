@@ -7,6 +7,7 @@ from ..utils.file_validation import save_upload_file, validate_csv_file
 from ..utils.model_validation import safe_load_model_from_path
 from ..db import get_session
 from app.models.models import UploadRecord
+from app.auth.dependencies import get_current_user
 
 router = APIRouter(prefix="/api")
 
@@ -16,18 +17,16 @@ async def upload_files(
     model_file: UploadFile = File(...),
     experiment_id: int = Form(...),
     session: AsyncSession = Depends(get_session),
+    current_user = Depends(get_current_user),
 ):
-    from app.auth.dependencies import get_current_user
-    from app.db import current_user_id
     from sqlalchemy import select
-    from app.models.experiment import Experiment
-    from app.models.workspace import Workspace
+    from app.models.workspace import Workspace, DashboardExperiment
     
-    uid = current_user_id.get()
+    uid = current_user.id
     result = await session.execute(
-        select(Experiment)
-        .join(Workspace, Experiment.workspace_id == Workspace.id)
-        .where(Experiment.id == experiment_id, Workspace.user_id == uid)
+        select(DashboardExperiment)
+        .join(Workspace, DashboardExperiment.workspace_id == Workspace.id)
+        .where(DashboardExperiment.id == experiment_id, Workspace.user_id == uid)
     )
     experiment = result.scalar_one_or_none()
     if not experiment:
