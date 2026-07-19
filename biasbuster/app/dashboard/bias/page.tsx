@@ -21,7 +21,7 @@ export default function BiasPage() {
     processingStep,
     processingPhase,
     setRequestMethod,
-    fetchRecommendation
+    fetchRecommendation,
   } = useWorkspace();
 
   const [activeResponseTab, setActiveResponseTab] = useState("body");
@@ -43,12 +43,18 @@ export default function BiasPage() {
     return (
       <div className="max-w-4xl space-y-6">
         <div className="border-b pb-4">
-          <h3 className="font-phase text-gray-800 text-lg">Bias Detection Configuration</h3>
-          <p className="text-xs text-gray-500 mt-1">Configure Target Columns and Sensitive Attributes for audit.</p>
+          <h3 className="font-phase text-gray-800 text-lg">
+            Bias Detection Configuration
+          </h3>
+          <p className="text-xs text-gray-500 mt-1">
+            Configure Target Columns and Sensitive Attributes for audit.
+          </p>
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">Target Column</label>
+          <label className="block text-sm font-semibold text-gray-700 mb-2">
+            Target Column
+          </label>
           <select
             value={selectedTarget ?? ""}
             onChange={(e) => setSelectedTarget(e.target.value)}
@@ -56,30 +62,37 @@ export default function BiasPage() {
           >
             <option value="">Select target column...</option>
             {columns.map((c) => (
-              <option key={c} value={c}>{c}</option>
+              <option key={c} value={c}>
+                {c}
+              </option>
             ))}
           </select>
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">Sensitive Attributes</label>
+          <label className="block text-sm font-semibold text-gray-700 mb-2">
+            Sensitive Attributes
+          </label>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
             {columns.map((col) => (
               <label
                 key={col}
                 className={`flex items-center gap-2 text-sm border rounded px-3 py-2 cursor-pointer transition-all ${
-                  selectedSensitive.includes(col) ? "bg-orange-50 border-orange-500" : "hover:bg-gray-50 bg-white"
+                  selectedSensitive.includes(col)
+                    ? "bg-orange-50 border-orange-500"
+                    : "hover:bg-gray-50 bg-white"
                 }`}
               >
                 <input
                   type="checkbox"
                   checked={selectedSensitive.includes(col)}
-                  disabled={!selectedSensitive.includes(col) && selectedSensitive.length >= 2}
                   onChange={(e) => {
                     if (e.target.checked) {
-                      if (selectedSensitive.length < 2) setSelectedSensitive([...selectedSensitive, col]);
+                      setSelectedSensitive([...selectedSensitive, col]);
                     } else {
-                      setSelectedSensitive(selectedSensitive.filter((c) => c !== col));
+                      setSelectedSensitive(
+                        selectedSensitive.filter((c) => c !== col),
+                      );
                     }
                   }}
                   className="rounded text-orange-500 focus:ring-orange-500"
@@ -88,7 +101,9 @@ export default function BiasPage() {
               </label>
             ))}
           </div>
-          <div className="text-xs text-gray-500 mt-2 italic">Select up to 2 sensitive attributes for analysis.</div>
+          <div className="text-xs text-gray-500 mt-2 italic">
+            Select one or more sensitive attributes for analysis.
+          </div>
         </div>
 
         <div className="pt-2">
@@ -111,7 +126,9 @@ export default function BiasPage() {
     return (
       <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
         <div className="p-4 border rounded-lg bg-gray-50 text-sm mb-4">
-          <div className="font-semibold mb-2 text-gray-700">Fairness Metric Guidelines</div>
+          <div className="font-semibold mb-2 text-gray-700">
+            Fairness Metric Guidelines
+          </div>
           <ul className="space-y-1 text-gray-600">
             <li>DPD &le; 0.1 &rarr; Fair</li>
             <li>EOD &le; 0.1 &rarr; Fair</li>
@@ -121,13 +138,22 @@ export default function BiasPage() {
 
         <BiasSummary report={biasResults} />
 
-        {Object.entries(biasResults.sensitive_audit || {}).map(([attribute, data]: any) => (
-          <AttributeBiasCard key={attribute} attribute={attribute} data={data} />
-        ))}
+        {Object.entries(biasResults.sensitive_audit || {}).map(
+          ([attribute, data]: any) => (
+            <AttributeBiasCard
+              key={attribute}
+              attribute={attribute}
+              data={data}
+            />
+          ),
+        )}
 
-        <div className={`p-4 rounded-lg border flex items-center justify-between gap-3 ${
-          biasResults.bias_present ? "bg-red-50 border-red-200 text-red-700" : "bg-green-50 border-green-200 text-green-700"
-        }`}
+        <div
+          className={`p-4 rounded-lg border flex items-center justify-between gap-3 ${
+            biasResults.bias_present
+              ? "bg-red-50 border-red-200 text-red-700"
+              : "bg-green-50 border-green-200 text-green-700"
+          }`}
         >
           <div className="flex items-center gap-3">
             <CheckCircle className="w-5 h-5" />
@@ -158,17 +184,19 @@ export default function BiasPage() {
 
   return (
     <div className="w-full">
-      <div className="p-6">
-        {renderConfig()}
-      </div>
+      <div className="p-6">{renderConfig()}</div>
 
       {biasResults && (
         <div className="mt-8 border-t-4 border-gray-200 bg-gray-50 animate-in fade-in duration-700">
           <div className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <span className="text-sm font-semibold text-gray-800">Response</span>
+              <span className="text-sm font-semibold text-gray-800">
+                Response
+              </span>
               <div className="flex items-center gap-2">
-                <span className="text-xs px-2 py-1 rounded font-medium bg-green-100 text-green-700">200 OK</span>
+                <span className="text-xs px-2 py-1 rounded font-medium bg-green-100 text-green-700">
+                  200 OK
+                </span>
                 <span className="text-xs text-gray-500">2.1s</span>
                 <span className="text-xs text-gray-500">8.4 KB</span>
               </div>
@@ -183,10 +211,11 @@ export default function BiasPage() {
             <div className="flex gap-6">
               <button
                 onClick={() => setActiveResponseTab("body")}
-                className={`px-1 py-3 text-sm font-medium ${activeResponseTab === "body"
-                  ? "text-orange-600 border-b-2 border-orange-500"
-                  : "text-gray-600 hover:text-gray-900"
-                  }`}
+                className={`px-1 py-3 text-sm font-medium ${
+                  activeResponseTab === "body"
+                    ? "text-orange-600 border-b-2 border-orange-500"
+                    : "text-gray-600 hover:text-gray-900"
+                }`}
               >
                 Body
               </button>

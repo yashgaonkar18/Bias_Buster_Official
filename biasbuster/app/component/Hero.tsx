@@ -97,8 +97,8 @@ export function Hero() {
                         <div className="absolute inset-0 z-10 pointer-events-none " />
 
                         <video
-                            src=""
                             autoPlay
+                            muted
                             loop
                             playsInline
                             className="w-full h-full object-cover rounded-xl"

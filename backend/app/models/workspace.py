@@ -17,6 +17,7 @@ class Workspace(Base):
     # Relationships
     user = relationship("User", back_populates="workspaces")
     experiments = relationship("DashboardExperiment", back_populates="workspace", cascade="all, delete-orphan")
+    legacy_experiments = relationship("Experiment", back_populates="workspace", cascade="all, delete-orphan")
 
 
 class DashboardExperiment(Base):

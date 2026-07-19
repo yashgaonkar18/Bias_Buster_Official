@@ -6,7 +6,12 @@ from fastapi import (
     status,
 )
 from fastapi.responses import RedirectResponse
+from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
+import httpx
+import logging
+
+logger = logging.getLogger(__name__)
 
 from app.auth.dependencies import get_current_user
 from app.auth.schemas import (
@@ -160,11 +165,24 @@ async def google_callback(
     request: Request,
     service: AuthService = Depends(get_auth_service),
 ):
-    token = await oauth.google.authorize_access_token(request)
+    try:
+        token = await oauth.google.authorize_access_token(request)
 
-    userinfo = token.get("userinfo")
-    if not userinfo:
-        userinfo = await oauth.google.parse_id_token(request, token)
+        userinfo = token.get("userinfo")
+        if not userinfo:
+            userinfo = await oauth.google.parse_id_token(request, token)
+    except (httpx.ConnectTimeout, httpx.ReadTimeout, httpx.RequestError) as e:
+        logger.error(f"Google OAuth connection error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Could not connect to Google's authentication servers. Please try again later.",
+        )
+    except Exception as e:
+        logger.error(f"Unexpected error during Google OAuth: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An unexpected error occurred during Google authentication.",
+        )
 
     auth = await service.oauth_login(
         provider="google",

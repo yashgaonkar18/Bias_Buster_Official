@@ -390,9 +390,13 @@ export const ComparisonDashboard = ({
                           <button
                             onClick={() => {
                               const apiBase = api.defaults.baseURL || "http://localhost:8000";
-                              const u = variant.dataset_download_url.startsWith("http")
+                              let u = variant.dataset_download_url.startsWith("http")
                                 ? variant.dataset_download_url
                                 : `${apiBase}${variant.dataset_download_url.startsWith("/") ? "" : "/"}${variant.dataset_download_url}`;
+                              const token = localStorage.getItem("access_token");
+                              if (token) {
+                                u += `${u.includes("?") ? "&" : "?"}token=${token}`;
+                              }
                               window.open(u, "_blank");
                             }}
                             className="px-3 py-1 rounded bg-white border text-sm flex items-center gap-1"
@@ -589,10 +593,16 @@ export const ReportPreviewModal = ({ report, onClose }: any) => {
   if (!report) return null;
 
   const apiBase = api.defaults.baseURL || "http://localhost:8000";
-  const resolveUrl = (url: string) =>
-    url.startsWith("http")
+  const resolveUrl = (url: string) => {
+    let resolved = url.startsWith("http")
       ? url
       : `${apiBase}${url.startsWith("/") ? "" : "/"}${url}`;
+    const token = localStorage.getItem("access_token");
+    if (token) {
+      resolved += `${resolved.includes("?") ? "&" : "?"}token=${token}`;
+    }
+    return resolved;
+  };
 
   const payload = report.report_payload || {};
   const chartData = payload.chart_data || {};

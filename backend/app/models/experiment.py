@@ -98,5 +98,5 @@ class Experiment(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
-    workspace = relationship("Workspace", back_populates="experiments")
+    workspace = relationship("Workspace", back_populates="legacy_experiments")
     uploads = relationship("UploadRecord", back_populates="experiment", cascade="all, delete-orphan")

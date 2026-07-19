@@ -140,7 +140,7 @@ export default function MitigatePage() {
             </span>
           </div>
           <p className="text-blue-800 text-sm mb-4 leading-relaxed">
-            {recommendation?.reasoning}
+            {recommendation?.recommendation_reasoning}
           </p>
           <div className="bg-white/60 p-3 rounded text-sm text-blue-900 italic border border-blue-100">
             {recommendation?.explanation_summary}

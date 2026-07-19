@@ -19,11 +19,17 @@ async def upload_files(
 ):
     from app.auth.dependencies import get_current_user
     from app.db import current_user_id
-    from app.repositories.experiment_repository import ExperimentRepository
+    from sqlalchemy import select
+    from app.models.experiment import Experiment
+    from app.models.workspace import Workspace
     
     uid = current_user_id.get()
-    exp_repo = ExperimentRepository(session)
-    experiment = await exp_repo.get_by_id_for_user(experiment_id, uid)
+    result = await session.execute(
+        select(Experiment)
+        .join(Workspace, Experiment.workspace_id == Workspace.id)
+        .where(Experiment.id == experiment_id, Workspace.user_id == uid)
+    )
+    experiment = result.scalar_one_or_none()
     if not experiment:
         raise HTTPException(status_code=404, detail="Experiment not found")
     ds_ext = Path(dataset_file.filename).suffix.lower()
@@ -40,6 +46,13 @@ async def upload_files(
 
         df, _ = await validate_csv_file(ds_path)
         model_info = safe_load_model_from_path(md_path)
+
+        from app.utils.column_normalizer import normalize_dataframe_columns
+        df = normalize_dataframe_columns(df, model_info["model"])
+        
+        # Save the normalized DataFrame back to the CSV file
+        # so subsequent services load the cleaned column names
+        df.to_csv(ds_path, index=False)
 
     except ValueError as ve:
         for p in (locals().get("ds_path"), locals().get("md_path")):

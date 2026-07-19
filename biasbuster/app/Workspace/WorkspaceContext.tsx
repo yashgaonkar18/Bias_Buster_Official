@@ -267,7 +267,11 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       : `${baseUrl}/api/models/download/${model?.model_id || ""}`;
 
     const separator = sourceUrl.includes("?") ? "&" : "?";
-    const finalUrl = `${sourceUrl}${separator}format=${format}`;
+    let finalUrl = `${sourceUrl}${separator}format=${format}`;
+    const token = localStorage.getItem("access_token");
+    if (token) {
+      finalUrl += `&token=${token}`;
+    }
     window.open(finalUrl, "_blank");
   };
 

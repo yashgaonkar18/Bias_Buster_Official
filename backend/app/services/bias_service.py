@@ -244,7 +244,7 @@ async def run_strategy_recommendation(payload, session: AsyncSession):
                 "overall_best_strategy": best_tradeoff["strategy"],
                 "strategy_comparison_matrix": ranked_strategies,
                 "recommendation_consistency_score": consistency_bonus + 50,
-                "explanation_summary": recommendation.get("explanation", ""),
+                "explanation_summary": recommendation.get("explanation_summary", ""),
             },
         }
     else:
