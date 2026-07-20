@@ -625,15 +625,7 @@ async def run_bias_mitigation(payload, session):
         # Store results in database
         mitigation_run = BiasMitigationRun(
             upload_id=payload.upload_id,
-            sensitive_attribute=",".join(payload.sensitive_columns),
-            strategy_used=strategy_name,
-            config=payload.strategy_config,
-            artifact_model_path=artifact_model_path,
-            artifact_dataset_path=artifact_dataset_path,
-        )
-        session.add(mitigation_run)
-        mitigation_run = BiasMitigationRun(
-            upload_id=payload.upload_id,
+            user_id=record.user_id,
             sensitive_attribute=",".join(payload.sensitive_columns),
             strategy_used=strategy_name,
             config=payload.strategy_config,
@@ -768,13 +760,12 @@ def _combined_ranking_score(
                 f"Missing performance key '{key}' for ranking score computation"
             )
 
-    fairness_improvement = float(
-        np.clip(
-            after_fairness["fairness_score"] - before_fairness["fairness_score"],
-            0.0,
-            1.0,
-        )
-    )
+    fairness_score_diff = after_fairness["fairness_score"] - before_fairness["fairness_score"]
+    
+    if fairness_score_diff <= 0:
+        fairness_improvement = 0.0
+    else:
+        fairness_improvement = float(np.clip(fairness_score_diff, 0.0, 1.0))
 
     before_accuracy = before_perf["accuracy"]
     after_accuracy = after_perf["accuracy"]
@@ -783,9 +774,13 @@ def _combined_ranking_score(
         accuracy_retention = float(np.clip(after_accuracy / before_accuracy, 0.0, 1.0))
 
     stability = _stability_score(before_metrics, after_metrics)
-    combined_score = (
-        (0.6 * fairness_improvement) + (0.3 * accuracy_retention) + (0.1 * stability)
-    )
+    
+    if fairness_improvement <= 0.001:
+        combined_score = 0.0
+    else:
+        combined_score = (
+            (0.7 * fairness_improvement) + (0.2 * accuracy_retention) + (0.1 * stability)
+        )
 
     return {
         "combined_score": float(np.clip(combined_score, 0.0, 1.0)),
@@ -1134,11 +1129,15 @@ async def run_mitigation_ranking(payload, session):
 
     ranked.sort(key=lambda item: item["combined_score"], reverse=True)
 
-    best_strategy = ranked[0]["strategy"] if ranked else None
+    best_strategy = None
+    if ranked and ranked[0]["combined_score"] > 0:
+        best_strategy = ranked[0]["strategy"]
+    else:
+        best_strategy = "none"
 
     for index, item in enumerate(ranked, start=1):
         item["rank"] = index
-        item["recommended"] = index == 1
+        item["recommended"] = (best_strategy == item["strategy"])
 
     ranking_record_rows = []
     for item in ranked:
@@ -1158,11 +1157,10 @@ async def run_mitigation_ranking(payload, session):
         session.add(row)
     await session.commit()
 
-    summary = (
-        f"{best_strategy.capitalize()} achieved the best fairness-performance balance across evaluated strategies."
-        if best_strategy
-        else "No best strategy could be determined."
-    )
+    if best_strategy == "none":
+        summary = "No effective mitigation found. The tested strategies did not produce sufficient fairness improvement."
+    else:
+        summary = f"{best_strategy.capitalize()} achieved the best fairness-performance balance across evaluated strategies."
 
     return {
         "status": "success",

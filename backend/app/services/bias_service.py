@@ -7,6 +7,7 @@ from pathlib import Path
 
 from app.schemas.bias import BiasDetectRequest
 from app.models.models import UploadRecord
+from app.models.bias_audit import BiasAuditRecord
 from app.utils.dataset_loader import load_dataset
 from app.utils.model_loader import load_model
 from app.utils.prediction import predict_labels
@@ -183,37 +184,42 @@ async def run_strategy_recommendation(payload, session: AsyncSession):
         "ranked_strategies"
     ):
         ranked_strategies = ranking_results["ranked_strategies"]
-        best_tradeoff = ranked_strategies[0]
-        fairness_best = max(ranked_strategies, key=lambda x: x["fairness_improvement"])
-        accuracy_best = min(ranked_strategies, key=lambda x: x["accuracy_drop"])
+        best_strategy_name = ranking_results.get("best_strategy", ranked_strategies[0]["strategy"])
+        
+        if best_strategy_name == "none":
+            best_tradeoff = ranked_strategies[0]
+            final_reasoning = "No effective mitigation found. The tested strategies did not produce sufficient fairness improvement."
+            confidence_score = 100 # Certain that nothing worked
+        else:
+            best_tradeoff = next((s for s in ranked_strategies if s["strategy"] == best_strategy_name), ranked_strategies[0])
+            
+            heuristic_strategy = recommendation.get("recommended_strategy", "none")
+            base_confidence = recommendation.get("confidence_score", 0.5) * 100
 
-        heuristic_strategy = recommendation.get("recommended_strategy", "none")
-        base_confidence = recommendation.get("confidence_score", 0.5) * 100
+            is_consistent = heuristic_strategy == best_tradeoff["strategy"]
+            consistency_bonus = 20 if is_consistent else -10
 
-        is_consistent = heuristic_strategy == best_tradeoff["strategy"]
-        consistency_bonus = 20 if is_consistent else -10
-
-        confidence_score = min(
-            99,
-            max(
-                1,
-                base_confidence
-                + consistency_bonus
-                + (best_tradeoff["combined_score"] * 30),
-            ),
-        )
-
-        final_reasoning = (
-            f"Simulated mitigation validated {best_tradeoff['strategy']} as the optimal approach, "
-            f"achieving a fairness score improvement of {best_tradeoff['fairness_improvement']:.2%} "
-            f"with only a {best_tradeoff['accuracy_drop']:.2%} accuracy tradeoff."
-        )
-
-        if not is_consistent and heuristic_strategy != "none":
-            final_reasoning = (
-                f"While initial heuristics suggested {heuristic_strategy}, "
-                f"empirical simulation ranked {best_tradeoff['strategy']} higher due to better performance retention."
+            confidence_score = min(
+                99,
+                max(
+                    1,
+                    base_confidence
+                    + consistency_bonus
+                    + (best_tradeoff["combined_score"] * 30),
+                ),
             )
+
+            final_reasoning = (
+                f"Simulated mitigation validated {best_tradeoff['strategy']} as the optimal approach, "
+                f"achieving a fairness score improvement of {best_tradeoff['fairness_improvement']:.2%} "
+                f"with only a {best_tradeoff['accuracy_drop']:.2%} accuracy tradeoff."
+            )
+
+            if not is_consistent and heuristic_strategy != "none":
+                final_reasoning = (
+                    f"While initial heuristics suggested {heuristic_strategy}, "
+                    f"empirical simulation ranked {best_tradeoff['strategy']} higher due to better performance retention."
+                )
 
         dpd_reduction = (
             best_tradeoff["metrics_before"]["fairness"]["aggregate"]["dpd"]
@@ -240,7 +246,7 @@ async def run_strategy_recommendation(payload, session: AsyncSession):
             "computed_metrics": prepared["computed_metrics"],
             "dataset_analysis": prepared["dataset_analysis"],
             "recommendation": {
-                "recommended_strategy": best_tradeoff["strategy"],
+                "recommended_strategy": best_strategy_name,
                 "confidence_score": math.floor(confidence_score),
                 "recommendation_reasoning": final_reasoning,
                 "strategy_rankings": ranked_strategies,
@@ -250,11 +256,11 @@ async def run_strategy_recommendation(payload, session: AsyncSession):
                     "accuracy_tradeoff": round(best_tradeoff["accuracy_drop"], 4),
                 },
                 "best_tradeoff_strategy": best_tradeoff["strategy"],
-                "fairness_best_strategy": fairness_best["strategy"],
-                "accuracy_best_strategy": accuracy_best["strategy"],
-                "overall_best_strategy": best_tradeoff["strategy"],
+                "fairness_best_strategy": max(ranked_strategies, key=lambda x: x["fairness_improvement"])["strategy"],
+                "accuracy_best_strategy": min(ranked_strategies, key=lambda x: x["accuracy_drop"])["strategy"],
+                "overall_best_strategy": best_strategy_name,
                 "strategy_comparison_matrix": ranked_strategies,
-                "recommendation_consistency_score": consistency_bonus + 50,
+                "recommendation_consistency_score": (20 if recommendation.get("recommended_strategy") == best_strategy_name else -10) + 50,
                 "explanation_summary": correct_explanation,
             },
         }
@@ -403,10 +409,9 @@ async def run_bias_detection(
         print(f"Failed to auto-register original model: {e}")
 
     # -------------------------------------------------
-    # STEP 10: Final response
+    # STEP 10: Final response and persist
     # -------------------------------------------------
-    # Include baseline performance (accuracy) and keep both 'di' and 'dir' keys for compatibility
-    return {
+    final_result = {
         "status": "success",
         "dataset_health": dataset_health,
         "target_info": target_info,
@@ -431,6 +436,20 @@ async def run_bias_detection(
         "warnings": list(set(warnings)),  # remove duplicates
         "next_step": "bias_mitigation" if max_severity > 0 else "model_optimization",
     }
+
+    try:
+        audit_record = BiasAuditRecord(
+            upload_id=payload.upload_id,
+            user_id=record.user_id,
+            audit_stage=0,
+            audit_result=final_result
+        )
+        session.add(audit_record)
+        await session.commit()
+    except Exception as e:
+        print(f"Failed to save BiasAuditRecord: {e}")
+
+    return final_result
 
 
 async def apply_bias_correction(payload, session: AsyncSession):

@@ -21,7 +21,7 @@ def apply_threshold_optimizer(
 
     optimizer = ThresholdOptimizer(
         estimator=base_estimator,
-        constraints="equalized_odds",
+        constraints="demographic_parity",
         predict_method=predict_method,
         prefit=True,
         grid_size=grid_size,

@@ -35,7 +35,7 @@ interface WorkspaceContextType {
   setToast: (toast: ToastMessage | null) => void;
   
   selectWorkspace: (ws: Workspace | null) => void;
-  selectExperiment: (exp: Experiment | null) => void;
+  selectExperiment: (exp: Experiment | null) => Promise<void>;
   createNewWorkspace: (name: string) => Promise<void>;
   renameWorkspace: (id: string | number, newName: string) => Promise<void>;
   deleteWorkspace: (id: string | number) => Promise<void>;
@@ -45,6 +45,7 @@ interface WorkspaceContextType {
   renameExperiment: (id: string | number, newName: string) => Promise<void>;
   deleteExperiment: (id: string | number) => Promise<void>;
   fetchExperiments: (workspaceId: string | number, search?: string) => Promise<any>;
+  experimentArtifacts: { [id: string]: any[] };
 
   // Pipeline State
   activeRequest: string;
@@ -124,6 +125,10 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   // Experiment States Caching
   const [experimentStates, setExperimentStates] = useState<{ [id: string]: any }>({});
+  // Track experiments already loaded from backend in this session
+  const [fetchedExperimentIds, setFetchedExperimentIds] = useState<Set<string>>(new Set());
+  // Per-experiment artifacts fetched from backend
+  const [experimentArtifacts, setExperimentArtifacts] = useState<{ [id: string]: any[] }>({});
 
   // Pipeline State
   const [activeRequest, setActiveRequest] = useState("dataset-test-1");
@@ -346,9 +351,25 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   };
 
+  // Resets all experiment-specific pipeline state
+  const resetExperimentState = () => {
+    setUploadId(null);
+    setUploadResponse(null);
+    setDatasetFile(null);
+    setModelFile(null);
+    setBiasResults(null);
+    setMitigationResults(null);
+    setOptimizationResults(null);
+    setColumns([]);
+    setSelectedTarget(null);
+    setSelectedSensitive([]);
+    setCurrentPhase("UPLOAD");
+    setRequestMethod("VALIDATE");
+  };
+
   // Switch Active Experiment (with pipeline cache preservation)
-  const selectExperiment = (exp: Experiment | null) => {
-    // 1. Cache old experiment state
+  const selectExperiment = async (exp: Experiment | null) => {
+    // 1. Cache old experiment state (only if it was actually loaded/used)
     if (selectedExperiment) {
       setExperimentStates(prev => ({
         ...prev,
@@ -369,12 +390,26 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       }));
     }
 
-    // 2. Load new experiment state
-    if (exp) {
+    setSelectedExperiment(exp);
+
+    if (!exp) {
       if (selectedWorkspace) {
-        localStorage.setItem(`bb_selected_experiment_id_${selectedWorkspace.id}`, String(exp.id));
+        localStorage.removeItem(`bb_selected_experiment_id_${selectedWorkspace.id}`);
       }
-      const state = experimentStates[exp.id];
+      resetExperimentState();
+      return;
+    }
+
+    if (selectedWorkspace) {
+      localStorage.setItem(`bb_selected_experiment_id_${selectedWorkspace.id}`, String(exp.id));
+    }
+
+    const expKey = String(exp.id);
+
+    // Only use in-memory cache if this experiment was already fetched from
+    // the backend in this session. Otherwise, always fetch fresh.
+    if (fetchedExperimentIds.has(expKey)) {
+      const state = experimentStates[expKey];
       if (state) {
         setUploadId(state.uploadId ?? null);
         setUploadResponse(state.uploadResponse ?? null);
@@ -389,38 +424,60 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         setCurrentPhase(state.currentPhase ?? "UPLOAD");
         setRequestMethod(state.requestMethod ?? "VALIDATE");
       } else {
-        // Reset state for new experiment
-        setUploadId(null);
-        setUploadResponse(null);
-        setDatasetFile(null);
-        setModelFile(null);
-        setBiasResults(null);
-        setMitigationResults(null);
-        setOptimizationResults(null);
-        setColumns([]);
-        setSelectedTarget(null);
-        setSelectedSensitive([]);
-        setCurrentPhase("UPLOAD");
-        setRequestMethod("VALIDATE");
+        resetExperimentState();
       }
-    } else {
-      if (selectedWorkspace) {
-        localStorage.removeItem(`bb_selected_experiment_id_${selectedWorkspace.id}`);
-      }
-      setUploadId(null);
-      setUploadResponse(null);
-      setDatasetFile(null);
-      setModelFile(null);
-      setBiasResults(null);
-      setMitigationResults(null);
-      setOptimizationResults(null);
-      setColumns([]);
-      setSelectedTarget(null);
-      setSelectedSensitive([]);
-      setCurrentPhase("UPLOAD");
-      setRequestMethod("VALIDATE");
+      return;
     }
-    setSelectedExperiment(exp);
+
+    // --- Not yet fetched this session: always load from backend ---
+    resetExperimentState();
+
+    try {
+      const res = await api.get(`/api/experiments/${exp.id}/state`);
+      const dbState = res.data;
+
+      // Mark as fetched so subsequent in-session switches use cache
+      setFetchedExperimentIds(prev => new Set([...prev, expKey]));
+
+      if (dbState.upload) {
+        setUploadId(dbState.upload.id);
+        setColumns(dbState.upload.dataset_columns_list || []);
+        setUploadResponse({
+          upload_id: dbState.upload.id,
+          status: "success",
+          dataset_info: {
+            rows: dbState.upload.dataset_rows,
+            columns: dbState.upload.dataset_columns,
+            column_names: dbState.upload.dataset_columns_list
+          },
+          model_info: {
+            model_type: dbState.upload.model_type,
+            supports_predict_proba: true
+          }
+        });
+
+        let phase: Phase = "VALIDATED";
+        if (dbState.bias_detection?.completed) {
+          setBiasResults(dbState.bias_detection.result);
+          phase = "BIAS_DETECTED";
+          const targetName =
+            dbState.bias_detection.result?.target_info?.name ||
+            dbState.bias_detection.result?.target_info?.target_column;
+          if (targetName) setSelectedTarget(targetName);
+          if (dbState.bias_detection.result?.sensitive_attributes) {
+            setSelectedSensitive(Object.keys(dbState.bias_detection.result.sensitive_attributes));
+          }
+        }
+        setCurrentPhase(phase);
+      }
+
+      // Store artifacts for sidebar display
+      if (dbState.artifacts) {
+        setExperimentArtifacts(prev => ({ ...prev, [expKey]: dbState.artifacts }));
+      }
+    } catch (err) {
+      console.error("Failed to restore experiment state from backend", err);
+    }
   };
 
   // Pipeline methods
@@ -605,18 +662,21 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       if (wsList && wsList.length > 0) {
         const savedWSId = localStorage.getItem("bb_selected_workspace_id");
         const initialWS = wsList.find((w: any) => String(w.id) === savedWSId) || wsList[0];
+        // Use setSelectedWorkspace directly to avoid re-triggering selectWorkspace's experiment fetch
         setSelectedWorkspace(initialWS);
-        
+
         const expList = await fetchExperiments(initialWS.id);
         if (expList && expList.length > 0) {
           const savedExpId = localStorage.getItem(`bb_selected_experiment_id_${initialWS.id}`);
           const initialExp = expList.find((e: any) => String(e.id) === savedExpId) || expList[0];
-          setSelectedExperiment(initialExp);
+          // CRITICAL FIX: call selectExperiment (not setSelectedExperiment) so backend state is fetched
+          await selectExperiment(initialExp);
         }
       }
     };
     initialize();
-  }, [fetchExperiments]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <WorkspaceContext.Provider
@@ -640,6 +700,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         renameExperiment,
         deleteExperiment,
         fetchExperiments,
+        experimentArtifacts,
 
         activeRequest,
         setActiveRequest,

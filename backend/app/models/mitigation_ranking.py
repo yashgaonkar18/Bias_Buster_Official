@@ -11,7 +11,7 @@ class MitigationRanking(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     upload_id = Column(
-        Integer, ForeignKey("upload_records.id"), nullable=False, index=True
+        Integer, ForeignKey("upload_records.id", ondelete="CASCADE"), nullable=False, index=True
     )
     strategy = Column(String, nullable=False)
     metrics_before = Column(JSON, nullable=False)

@@ -9,6 +9,7 @@ import {
   Plus, 
   Settings, 
   ChevronDown, 
+  ChevronRight,
   Star, 
   Trash2, 
   Edit3, 
@@ -19,7 +20,10 @@ import {
   Award,
   Upload,
   AlertTriangle,
-  FolderOpen
+  FolderOpen,
+  Database,
+  Cpu,
+  Download
 } from "lucide-react";
 
 function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
@@ -44,6 +48,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
     renameExperiment,
     deleteExperiment,
     fetchExperiments,
+    experimentArtifacts,
     
     // pipeline states to determine tab locks
     currentPhase,
@@ -51,6 +56,9 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
     optimizationResults,
     comparisonData
   } = useWorkspace();
+
+  // Track which experiments are expanded in sidebar
+  const [expandedExperiments, setExpandedExperiments] = useState<Set<string | number>>(new Set());
 
   // Dropdowns & Modals state
   const [showWorkspaceDropdown, setShowWorkspaceDropdown] = useState(false);
@@ -307,44 +315,126 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
             <div className="flex-1 overflow-y-auto px-4 py-3">
               <div className="space-y-1">
                 {experiments.length > 0 ? (
-                  experiments.map((exp) => (
-                    <div
-                      key={exp.id}
-                      className={`group flex items-center justify-between px-3 py-2 rounded-md cursor-pointer transition-all border ${
-                        selectedExperiment?.id === exp.id
-                          ? "bg-orange-50 text-orange-700 border-orange-200"
-                          : "hover:bg-gray-50 text-gray-700 border-transparent"
-                      }`}
-                    >
-                      <div
-                        onClick={() => selectExperiment(exp)}
-                        className="flex-1 min-w-0 truncate text-sm font-medium"
-                      >
-                        {exp.name}
-                      </div>
+                  experiments.map((exp) => {
+                    const isSelected = selectedExperiment?.id === exp.id;
+                    const isExpanded = expandedExperiments.has(exp.id);
+                    const artifacts: any[] = experimentArtifacts[String(exp.id)] || [];
 
-                      <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openModal("renameExperiment", exp.name, null, exp);
-                          }}
-                          className="p-1 hover:bg-gray-200 rounded text-gray-400 hover:text-gray-600"
+                    const toggleExpand = async (e: React.MouseEvent) => {
+                      e.stopPropagation();
+                      const next = new Set(expandedExperiments);
+                      if (isExpanded) {
+                        next.delete(exp.id);
+                      } else {
+                        next.add(exp.id);
+                        // Trigger backend fetch if not yet loaded for this experiment
+                        if (!experimentArtifacts[String(exp.id)]) {
+                          await selectExperiment(exp);
+                        }
+                      }
+                      setExpandedExperiments(next);
+                    };
+
+                    const artifactIcon = (type: string) => {
+                      if (type === "dataset") return <Database className="w-3 h-3 text-blue-400 shrink-0" />;
+                      if (type === "report") return <FileText className="w-3 h-3 text-green-500 shrink-0" />;
+                      return <Cpu className="w-3 h-3 text-purple-400 shrink-0" />;
+                    };
+
+                    return (
+                      <div key={exp.id}>
+                        {/* Experiment row */}
+                        <div
+                          className={`group flex items-center justify-between px-2 py-1.5 rounded-md cursor-pointer transition-all border ${
+                            isSelected
+                              ? "bg-orange-50 text-orange-700 border-orange-200"
+                              : "hover:bg-gray-50 text-gray-700 border-transparent"
+                          }`}
                         >
-                          <Edit3 className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openModal("deleteExperiment", "", null, exp);
-                          }}
-                          className="p-1 hover:bg-red-50 rounded text-gray-400 hover:text-red-600"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                          {/* Chevron toggle */}
+                          <button
+                            onClick={toggleExpand}
+                            className="p-0.5 rounded hover:bg-gray-200 text-gray-400 shrink-0"
+                            title={isExpanded ? "Collapse" : "Expand"}
+                          >
+                            {isExpanded
+                              ? <ChevronDown className="w-3.5 h-3.5" />
+                              : <ChevronRight className="w-3.5 h-3.5" />}
+                          </button>
+
+                          {/* Name — clicking selects */}
+                          <div
+                            onClick={() => selectExperiment(exp)}
+                            className="flex-1 min-w-0 truncate text-sm font-medium px-1"
+                          >
+                            {exp.name}
+                          </div>
+
+                          <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openModal("renameExperiment", exp.name, null, exp);
+                              }}
+                              className="p-1 hover:bg-gray-200 rounded text-gray-400 hover:text-gray-600"
+                            >
+                              <Edit3 className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openModal("deleteExperiment", "", null, exp);
+                              }}
+                              className="p-1 hover:bg-red-50 rounded text-gray-400 hover:text-red-600"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Artifact list — shown when expanded */}
+                        {isExpanded && (
+                          <div className="ml-5 mt-0.5 mb-1 space-y-0.5">
+                            {artifacts.length === 0 ? (
+                              <div className="text-[11px] text-gray-400 px-2 py-1 italic">No files yet</div>
+                            ) : (
+                              artifacts.map((art, idx) => {
+                                const isReport = art.type === "report";
+                                const content = (
+                                  <div
+                                    key={idx}
+                                    className={`flex items-center gap-1.5 px-2 py-1 rounded text-[11px] text-gray-600 ${
+                                      isReport ? "hover:bg-green-50 cursor-pointer" :
+                                      (art.type === "mitigated_model" || art.type === "optimized_model") ? "hover:bg-purple-50 cursor-pointer" :
+                                      "cursor-default"
+                                    }`}
+                                    title={art.type.replace("_", " ")}
+                                  >
+                                    {artifactIcon(art.type)}
+                                    <span className="truncate flex-1">{art.name}</span>
+                                    {(isReport) && (
+                                      <Download className="w-3 h-3 text-gray-400 shrink-0" />
+                                    )}
+                                  </div>
+                                );
+
+                                if (isReport && art.pdf_download_url) {
+                                  const token = typeof window !== "undefined" ? localStorage.getItem("access_token") : "";
+                                  const url = `http://localhost:8000${art.pdf_download_url}${token ? `?token=${token}` : ""}`;
+                                  return (
+                                    <a key={idx} href={url} target="_blank" rel="noopener noreferrer" className="block">
+                                      {content}
+                                    </a>
+                                  );
+                                }
+                                return <div key={idx}>{content}</div>;
+                              })
+                            )}
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
                 ) : (
                   <div className="text-xs text-gray-400 text-center py-6">
                     No experiments found.

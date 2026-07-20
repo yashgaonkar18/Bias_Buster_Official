@@ -9,7 +9,7 @@ class BiasMitigationRun(Base):
     __tablename__ = "bias_mitigation_runs"
 
     id = Column(Integer, primary_key=True)
-    upload_id = Column(Integer, ForeignKey("upload_records.id"))
+    upload_id = Column(Integer, ForeignKey("upload_records.id", ondelete="CASCADE"))
     sensitive_attribute = Column(String)
     strategy_used = Column(String)
     config = Column(JSON)
