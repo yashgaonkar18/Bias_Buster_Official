@@ -17,7 +17,7 @@ export function ProductionReady() {
         </div>
 
         {/* Bento Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 auto-rows-[minmax(300px,auto)]">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 auto-rows-[minmax(300px,auto)] ">
           
           {/* Card 1: Hardware - Spans 1 col */}
           <div className="group bg-white rounded-2xl p-8 shadow-sm border border-border/50 flex flex-col hover:shadow-md transition-all duration-300">

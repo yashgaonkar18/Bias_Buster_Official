@@ -20,10 +20,9 @@ const anton = Anton({
   variable: "--font-anton" // CSS variable name
 });
 
-
 const jetbrains = JetBrains_Mono({
   subsets: ["latin"],
-  weight: ["400", "500", "700"], // Choose what you need
+  weight: ["400", "500", "700"],
   variable: "--font-jetbrains"
 });
 

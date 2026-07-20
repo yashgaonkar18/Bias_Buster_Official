@@ -1,8 +1,22 @@
+"use client";
+
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Ripple } from "@/components/ui/ripple"
-import { ArrowRight, Terminal, ChevronRight, Cpu, Shield, Zap, Database, ShieldQuestionMark } from "lucide-react";
+import { ChevronRight, Cpu, Shield, Database } from "lucide-react";
 
 export function Hero() {
+    const router = useRouter();
+
+    const handleGetStarted = () => {
+        const token = localStorage.getItem("access_token");
+        if (token) {
+            router.push("/dashboard");
+        } else {
+            router.push("/authentication?mode=signup");
+        }
+    };
+
     return (
         <section className="relative min-h-screen pt-32 pb-20 overflow-hidden flex flex-col justify-center items-center">
             <Ripple />
@@ -41,7 +55,7 @@ export function Hero() {
                         News
                     </span>
                     <span className="text-[10px] font-mono font-medium uppercase tracking-wide text-[#5C3213]">
-                        BiasBuster 2.0: Now with Multimodal Scanning
+                        Coming Soon: Multimodal Testing
                     </span>
                     <ChevronRight className="size-3 text-[#5C3213]" />
                 </div>
@@ -55,12 +69,16 @@ export function Hero() {
                 </h1>
 
                 <p className="max-w-2xl text-lg md:text-xl text-muted-foreground mb-10 font-medium leading-relaxed">
-                    Deploy intensive bias detection across text, image, and video models in minutes.
-                    Scale in 50+ regions with enterprise-grade compliance.
+                    Detect, analyze, and mitigate bias in machine learning models with automated fairness metrics,
+                    intelligent mitigation strategies, and comprehensive audit reports.
                 </p>
 
                 <div className="flex flex-col sm:flex-row items-center gap-6 mb-20">
-                    <Button size="lg" className="h-12 px-8 bg-foreground text-background hover:bg-foreground/90 rounded-md font-mono text-xs font-bold uppercase tracking-widest shadow-xl">
+                    <Button
+                        size="lg"
+                        onClick={handleGetStarted}
+                        className="h-12 px-8 bg-foreground text-background hover:bg-foreground/90 rounded-md font-mono text-xs font-bold uppercase tracking-widest shadow-xl"
+                    >
                         <ChevronRight className="size-3 mr-2" />
                         Get Started
                     </Button>
@@ -79,8 +97,8 @@ export function Hero() {
                         <div className="absolute inset-0 z-10 pointer-events-none " />
 
                         <video
-                            src=""
                             autoPlay
+                            muted
                             loop
                             playsInline
                             className="w-full h-full object-cover rounded-xl"
