@@ -63,7 +63,7 @@ export function Navbar() {
   };
 
   const navItems = [
-    { label: "Docs", href: "#docs" },
+    { label: "Docs", href: "/documentpage" },
     { label: "Blog", href: "#blog" },
     { label: "Tutorials", href: "#tutorials" },
     { label: "Workspace", href: "/Workspace" },
