@@ -44,6 +44,7 @@ from app.config import settings
 from app.models.bias_mitigation import BiasMitigationRun
 from app.models.experiment import ExperimentRun, FairnessExperimentReport
 from app.models.models import OptimizationRun, CorrectionRecord, UploadRecord
+from app.models.workspace import DashboardExperiment
 from app.services.model_registry_service import ModelRegistryService
 
 
@@ -62,6 +63,42 @@ def _normalize_metric(value: Any, fallback: float = 0.0) -> float:
         return float(value)
     except (TypeError, ValueError):
         return fallback
+
+def _is_metric_missing(value: Any) -> bool:
+    if value is None:
+        return True
+    if isinstance(value, str) and not value.strip():
+        return True
+    return False
+
+def _format_metric_display(value: Any, digits: int = 3) -> str:
+    if _is_metric_missing(value):
+        return "N/A"
+    return f"{_normalize_metric(value):.{digits}f}"
+
+def _clean_model_name(raw_name: str) -> str:
+    if not raw_name:
+        return "Unknown Model"
+    
+    raw = str(raw_name).lower()
+    
+    if "gridsearch" in raw:
+        return "Optimized Model (Grid Search)"
+    if "optuna" in raw:
+        return "Optimized Model (Optuna)"
+    
+    if "baseline" in raw:
+        if "reweighting" in raw:
+            return "Reweighting Model"
+        if "smote" in raw:
+            return "SMOTE Model"
+        if "threshold" in raw:
+            return "Threshold Model"
+        if "mitigated" in raw:
+            return "Mitigated Model"
+        return "Baseline Model"
+        
+    return raw_name
 
 
 def _extract_best_variant(
@@ -232,7 +269,7 @@ def _divider():
 
 
 def _fmt(v, digits=3):
-    return f"{_normalize_metric(v):.{digits}f}"
+    return _format_metric_display(v, digits)
 
 
 # --------------------------------------------------------------- header/foot
@@ -356,14 +393,21 @@ def _save_tradeoff_chart(chart_data: Dict[str, Any], out_path: str) -> None:
 
     scatter = chart_data.get("scatter", []) or []
 
-    # Remove duplicate points
+    # Remove duplicate points and handle missing metrics
     seen_points = set()
     deduped_scatter = []
     for pt in scatter:
+        # Filter out points with missing accuracy or fairness
+        if _is_metric_missing(pt.get("x")) or _is_metric_missing(pt.get("y")):
+            continue
+            
+        label = _clean_model_name(pt.get("label", ""))
+        pt["label"] = label
+        
         key = (
-            pt.get("label"),
-            round(pt.get("x", 0.0), 4),
-            round(pt.get("y", 0.0), 4),
+            label,
+            round(_normalize_metric(pt.get("x", 0.0)), 4),
+            round(_normalize_metric(pt.get("y", 0.0)), 4),
         )
         if key not in seen_points:
             seen_points.add(key)
@@ -572,10 +616,13 @@ def _render_pdf_reportlab(report_payload: Dict[str, Any], pdf_path: _Path) -> No
     story.append(Spacer(1, 14))
 
     # KPI cards — accuracy=blue, fairness=green, combined/DIR=orange (mirrors React accents)
+    best_balanced_name = overview.get("best_balanced_model_name")
+    clean_best_balanced_name = _clean_model_name(best_balanced_name) if best_balanced_name else "—"
+
     cards = [
         _metric_card("Accuracy", _fmt(km.get("accuracy")), f"{'▲' if acc_change >= 0 else '▼'} {acc_change:+.3f}", BLUE, GREEN if acc_change >= 0 else RED),
         _metric_card("Fairness Score", _fmt(km.get("fairness_score")), f"{'▲' if fair_change >= 0 else '▼'} {fair_change:+.3f}", GREEN, GREEN if fair_change >= 0 else RED),
-        _metric_card("Combined Score", _fmt(km.get("combined_score")), overview.get("best_balanced_model_name") or "—", ORANGE, MUTED),
+        _metric_card("Combined Score", _fmt(km.get("combined_score")), clean_best_balanced_name, ORANGE, MUTED),
         _metric_card("Disparate Impact", _fmt(km.get("dir")), "Ratio (DIR)", AMBER, MUTED),
     ]
     story.append(Table([cards], colWidths=[1.72 * inch] * 4, hAlign="LEFT"))
@@ -624,11 +671,30 @@ def _render_pdf_reportlab(report_payload: Dict[str, Any], pdf_path: _Path) -> No
         story.append(_section("Model Comparison"))
         rows = [[Paragraph(h, style_table_head) for h in ("Model", "Accuracy", "Fairness", "DPD", "EOD", "DIR", "Combined")]]
         best_name = overview.get("best_balanced_model_name")
+        clean_best_name = _clean_model_name(best_name) if best_name else None
+
+        seen_models = set()
         for m in comparison_models:
-            name = m.get("model_name", m.get("model_id", "Model"))
-            name_style = (ParagraphStyle("hi", parent=style_table_cell_bold, textColor=ORANGE) if name == best_name else style_table_cell)
+            raw_name = m.get("model_name", m.get("model_id", "Model"))
+            clean_name = _clean_model_name(raw_name)
+
+            # Skip models where all key metrics are missing
+            if all(_is_metric_missing(m.get(k)) for k in ("accuracy", "fairness_score", "dpd", "eod", "dir", "combined_score")):
+                continue
+
+            # Deduplicate by clean name + accuracy + fairness score
+            dup_key = (
+                clean_name,
+                round(_normalize_metric(m.get("accuracy")), 4),
+                round(_normalize_metric(m.get("fairness_score")), 4),
+            )
+            if dup_key in seen_models:
+                continue
+            seen_models.add(dup_key)
+
+            name_style = (ParagraphStyle("hi", parent=style_table_cell_bold, textColor=ORANGE) if clean_name == clean_best_name else style_table_cell)
             rows.append([
-                Paragraph(("★ " if name == best_name else "") + name, name_style),
+                Paragraph(("★ " if clean_name == clean_best_name else "") + clean_name, name_style),
                 Paragraph(_fmt(m.get("accuracy")), style_table_cell),
                 Paragraph(_fmt(m.get("fairness_score")), style_table_cell),
                 Paragraph(_fmt(m.get("dpd")), style_table_cell),
@@ -807,6 +873,14 @@ async def generate_fairness_experiment_report(
     comparison = await ModelRegistryService.compare_models(payload.upload_id, session)
     comparison_dict = comparison.model_dump() if comparison else None
 
+    dashboard_experiment = None
+    if upload.experiment_id:
+        dashboard_experiment = (
+            await session.execute(
+                select(DashboardExperiment).where(DashboardExperiment.id == upload.experiment_id)
+            )
+        ).scalar_one_or_none()
+
     experiment = (
         await session.execute(
             select(ExperimentRun)
@@ -893,15 +967,18 @@ async def generate_fairness_experiment_report(
 
     interpretation_summary = _interpret_tradeoff(accuracy_gain, fairness_gain)
     if best_balanced:
+        clean_best = _clean_model_name(best_balanced.get('model_name', 'the selected model'))
         interpretation_summary = (
             f"{interpretation_summary} The best balanced model is "
-            f"{best_balanced.get('model_name', 'the selected model')} with combined score "
+            f"the {clean_best}, with a combined score of "
             f"{_normalize_metric(best_balanced.get('combined_score')):.3f}."
         )
 
     generated_at = datetime.utcnow().isoformat() + "Z"
     report_id = str(uuid4())
-    title = payload.title or f"Fairness Experiment Report - Upload {payload.upload_id}"
+    
+    experiment_name = dashboard_experiment.name if dashboard_experiment else f"Upload {payload.upload_id}"
+    title = payload.title or f"{experiment_name} — Fairness Experiment Report"
 
     report_payload: Dict[str, Any] = {
         "report_id": report_id,

@@ -4,6 +4,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
+import re
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -50,10 +51,13 @@ async def download_report(
     if not pdf_path.exists():
         raise HTTPException(status_code=404, detail="Report file not found on server")
 
+    title_slug = re.sub(r'[^a-z0-9]+', '_', record.title.lower()).strip('_')
+    filename = f"{title_slug}.pdf" if title_slug else f"{report_id}.pdf"
+
     return FileResponse(
         path=pdf_path,
         media_type="application/pdf",
-        filename=f"{report_id}.pdf",
+        filename=filename,
     )
 
 
