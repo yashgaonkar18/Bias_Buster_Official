@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, FormEvent, Suspense } from "react";
+import { useState, FormEvent, Suspense, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { login, signup, googleLogin, githubLogin } from "@/lib/auth";
@@ -14,6 +14,13 @@ function AuthPageContent() {
     const searchParams = useSearchParams();
     const initialMode = searchParams.get("mode") === "signup" ? "signup" : "login";
     const [mode, setMode] = useState<Mode>(initialMode);
+    const router = useRouter();
+
+    useEffect(() => {
+        if (typeof window !== "undefined" && localStorage.getItem("access_token")) {
+            router.push("/dashboard/upload");
+        }
+    }, [router]);
 
 
     return (
@@ -178,7 +185,7 @@ function LoginForm() {
             localStorage.setItem("refresh_token", result.refresh_token);
             localStorage.setItem("user", JSON.stringify(result.user));
             window.dispatchEvent(new Event(AUTH_CHANGED_EVENT));
-            router.push("/");
+            router.push("/dashboard/upload");
             router.refresh();
         } catch (err: any) {
             console.error(err);
@@ -237,7 +244,7 @@ function SignupForm() {
             localStorage.setItem("user", JSON.stringify(result.user));
             window.dispatchEvent(new Event(AUTH_CHANGED_EVENT));
             sessionStorage.setItem("show_welcome", "true");
-            router.push("/");
+            router.push("/dashboard/upload");
             router.refresh();
         } catch (err: any) {
             console.error(err);

@@ -195,7 +195,7 @@ export default function OptimizationPage() {
             <Settings className="w-5 h-5 text-indigo-600" /> Optimization Complete
           </h3>
           <p className="text-sm text-indigo-700">
-            Successfully optimized the mitigated model using {optimizationResults.optimization_method || "Adaptive Search"}.
+            {optimizationResults.optimization_summary || `Successfully optimized the mitigated model using ${optimizationResults.optimization_method || "Adaptive Search"}.`}
           </p>
         </div>
 
@@ -203,7 +203,10 @@ export default function OptimizationPage() {
           <h4 className="font-bold text-gray-800 mb-4 border-b pb-2">Optimization Results</h4>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 text-sm pt-2">
             <div className="p-4 bg-gray-50 border border-gray-100 rounded-lg shadow-sm">
-              <div className="font-bold text-gray-500 mb-4 text-xs uppercase tracking-widest">Before Optimization</div>
+              <div className="font-bold text-gray-500 mb-4 text-xs uppercase tracking-widest flex items-center justify-between">
+                <span>Pre-Optimization Baseline</span>
+                <span className="text-[10px] font-medium normal-case text-gray-400">(original model)</span>
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <MetricRow name="Accuracy" value={optimizationResults.baseline_model?.performance?.accuracy} />
                 <MetricRow name="Fairness Score" value={optimizationResults.baseline_model?.fairness?.aggregate?.fairness_score} />

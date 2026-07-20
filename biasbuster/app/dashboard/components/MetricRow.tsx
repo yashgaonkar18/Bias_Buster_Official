@@ -1,6 +1,7 @@
 "use client";
 
 import { getMetricInterpretation } from "@/utils/fairnessInterpretation";
+import { Info } from "lucide-react";
 
 export default function MetricRow({
   name,
@@ -19,8 +20,11 @@ export default function MetricRow({
       className="border rounded-lg p-3 bg-gray-50"
       title={interpretation.tooltip}
     >
-      <div className="text-xs text-gray-500">
+      <div className="flex items-center gap-1 text-xs text-gray-500">
         {name}
+        {interpretation.tooltip && interpretation.improvementLabel && (
+          <Info className="w-3 h-3 text-gray-400" />
+        )}
       </div>
 
       <div className="flex justify-between mt-1">
@@ -43,7 +47,7 @@ export default function MetricRow({
 
           {interpretation.improvementLabel && (
             <span
-              className={`text-[10px] font-bold ${interpretation.improvementColor}`}
+              className={`text-[10px] font-bold ${interpretation.improvementColor} mt-0.5`}
             >
               {interpretation.improvementLabel}
             </span>

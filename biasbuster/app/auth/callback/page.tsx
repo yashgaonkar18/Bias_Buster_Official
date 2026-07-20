@@ -36,7 +36,7 @@ function CallbackContent() {
             // re-check auth state right now, without a full page reload.
             window.dispatchEvent(new Event(AUTH_CHANGED_EVENT));
 
-            router.push("/");
+            router.push("/dashboard/upload");
         };
 
         run();

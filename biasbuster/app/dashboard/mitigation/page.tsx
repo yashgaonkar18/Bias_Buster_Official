@@ -263,13 +263,22 @@ export default function MitigationPage() {
     const before = mitigationResults.metrics_before || mitigationResults.baseline_model || {};
     const after = mitigationResults.metrics_after || mitigationResults.mitigated_model || {};
 
+    const afterDpd = Math.abs(getMetric(after, "dpd") || 0);
+    const afterEod = Math.abs(getMetric(after, "eod") || 0);
+    const residualBias = afterDpd > 0.2 || afterEod > 0.2;
+    
+    const strategyName = (mitigationResults.strategy_applied || "Mitigation").toUpperCase();
+    const successMessage = residualBias
+      ? `${strategyName} successfully reduced measured fairness disparities while preserving model performance. Some fairness metrics remain outside the target thresholds.`
+      : mitigationResults.tradeoff_analysis || "The model has been successfully mitigated.";
+
     return (
       <div className="space-y-8 max-w-5xl animate-in fade-in slide-in-from-bottom-4 duration-700">
         <div className="bg-green-50 border border-green-200 rounded-lg p-5">
           <h3 className="text-lg font-bold text-green-800 mb-2 flex items-center gap-2">
             <ShieldCheck className="w-5 h-5 text-green-600" /> Mitigation Pipeline Successful
           </h3>
-          <p className="text-sm text-green-700 mb-4">{mitigationResults.tradeoff_analysis || "The model has been successfully mitigated."}</p>
+          <p className="text-sm text-green-700 mb-4">{successMessage}</p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm mt-4">
             <InfoRow label="Strategy Applied" value={mitigationResults.strategy_applied?.toUpperCase() || "N/A"} />
             <InfoRow label="Fairness Gain" value={`+${((mitigationResults.fairness_improvement?.fairness_score_gain || 0) * 100).toFixed(1)}%`} />

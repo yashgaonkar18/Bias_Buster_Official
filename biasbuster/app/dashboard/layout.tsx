@@ -23,8 +23,11 @@ import {
   FolderOpen,
   Database,
   Cpu,
-  Download
+  Download,
+  LogOut
 } from "lucide-react";
+import { logout } from "@/lib/auth";
+import { AUTH_CHANGED_EVENT } from "@/lib/auth-events";
 
 function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -148,6 +151,23 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   const navigateToTab = (path: string, locked: boolean) => {
     if (locked) return;
     router.push(path);
+  };
+
+  const handleLogout = async () => {
+    try {
+      const refresh = localStorage.getItem("refresh_token");
+      if (refresh) {
+        await logout(refresh);
+      }
+    } catch (err) {
+      console.error("Logout error", err);
+    } finally {
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("refresh_token");
+      localStorage.removeItem("user");
+      window.dispatchEvent(new Event(AUTH_CHANGED_EVENT));
+      router.push("/");
+    }
   };
 
   return (
@@ -458,6 +478,16 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
             Create or select a workspace to get started.
           </div>
         )}
+
+        {/* Logout Button */}
+        <div className="p-4 border-t border-gray-100 mt-auto shrink-0">
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-2 px-3 py-2 text-sm font-semibold text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-all"
+          >
+            <LogOut className="w-4 h-4" /> Logout
+          </button>
+        </div>
       </div>
 
       {/* Main Content Area */}

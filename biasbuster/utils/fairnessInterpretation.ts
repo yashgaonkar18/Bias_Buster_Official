@@ -118,30 +118,33 @@ export const interpretImprovement = (
   before: number,
   after: number,
 ): { label: string; color: string } => {
-  if (before === undefined || after === undefined) {
+  if (before === undefined || after === undefined || before === null || after === null) {
     return { label: "", color: "" };
   }
 
   const diff = after - before;
+  
+  // Safe percentage calculation
+  const getPercent = (num: number, den: number) => {
+    if (den === 0) return 0;
+    return (num / Math.abs(den)) * 100;
+  };
 
   if (metricType === "accuracy") {
-    if (diff > 0.02) return { label: "Improved", color: "text-green-600" };
-    if (diff > 0.005)
-      return { label: "Slightly Improved", color: "text-green-500" };
-    if (Math.abs(diff) <= 0.005)
-      return { label: "Stable", color: "text-blue-600" };
-    if (diff >= -0.02)
-      return { label: "Slightly Reduced", color: "text-orange-500" };
-    return { label: "Reduced", color: "text-red-600" };
+    const pct = getPercent(diff, before);
+    if (diff > 0.005) return { label: `↑ ${pct.toFixed(1)}% Improved`, color: "text-green-600" };
+    if (Math.abs(diff) <= 0.005) return { label: "↔ Stable", color: "text-blue-600" };
+    return { label: `↓ ${Math.abs(pct).toFixed(1)}% Reduced`, color: "text-red-600" };
   }
 
   if (metricType === "fairness") {
     // Higher is better (Fairness Score)
+    const pct = getPercent(diff, before);
     if (diff > 0.02)
-      return { label: "Fairness Improved", color: "text-green-600" };
+      return { label: `↑ ${pct.toFixed(1)}% Improved`, color: "text-green-600" };
     if (Math.abs(diff) <= 0.02)
-      return { label: "Fairness Stable", color: "text-blue-600" };
-    return { label: "Fairness Degraded", color: "text-red-600" };
+      return { label: "↔ No Meaningful Change", color: "text-blue-600" };
+    return { label: `↓ ${Math.abs(pct).toFixed(1)}% Degraded`, color: "text-red-600" };
   }
 
   if (metricType === "bias") {
@@ -149,12 +152,13 @@ export const interpretImprovement = (
     const beforeAbs = Math.abs(before);
     const afterAbs = Math.abs(after);
     const absDiff = beforeAbs - afterAbs;
+    const pct = getPercent(absDiff, beforeAbs);
 
     if (absDiff > 0.02)
-      return { label: "Bias Reduced", color: "text-green-600" };
+      return { label: `↓ ${pct.toFixed(1)}% Bias Reduced`, color: "text-green-600" };
     if (Math.abs(absDiff) <= 0.02)
-      return { label: "Fairness Stable", color: "text-blue-600" };
-    return { label: "Bias Increased", color: "text-red-600" };
+      return { label: "↔ No Meaningful Change", color: "text-blue-600" };
+    return { label: `↑ ${Math.abs(pct).toFixed(1)}% Worsened`, color: "text-red-600" };
   }
 
   if (metricType === "dir") {
@@ -162,12 +166,13 @@ export const interpretImprovement = (
     const beforeDistance = Math.abs(before - 1);
     const afterDistance = Math.abs(after - 1);
     const distanceDiff = beforeDistance - afterDistance;
+    const pct = getPercent(distanceDiff, beforeDistance);
 
     if (distanceDiff > 0.02)
-      return { label: "Bias Reduced", color: "text-green-600" };
+      return { label: `↓ ${pct.toFixed(1)}% Bias Reduced`, color: "text-green-600" };
     if (Math.abs(distanceDiff) <= 0.02)
-      return { label: "Fairness Stable", color: "text-blue-600" };
-    return { label: "Bias Increased", color: "text-red-600" };
+      return { label: "↔ No Meaningful Change", color: "text-blue-600" };
+    return { label: `↑ ${Math.abs(pct).toFixed(1)}% Worsened`, color: "text-red-600" };
   }
 
   return { label: "", color: "text-gray-500" };
@@ -208,6 +213,12 @@ export const getMetricInterpretation = (
       improvement = interpretImprovement("dir", baselineValue, value);
     } else {
       improvement = interpretImprovement("bias", baselineValue, value);
+    }
+    
+    if (state.tooltip) {
+      state.tooltip += " Improvement percentage shows change vs. the previous model.";
+    } else {
+      state.tooltip = "Improvement percentage shows change vs. the previous model.";
     }
   }
 

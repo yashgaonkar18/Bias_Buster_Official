@@ -637,7 +637,7 @@ export const ReportPreviewModal = ({ report, onClose }: any) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 p-4 overflow-y-auto flex items-center justify-center">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 p-4 overflow-y-auto flex items-start justify-center">
       <div className="max-w-6xl w-full bg-white rounded-3xl shadow-2xl overflow-hidden my-8 animate-in zoom-in-95 duration-300">
         <div className="flex items-start justify-between gap-4 p-6 border-b border-gray-100">
           <div>

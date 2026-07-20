@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { CheckCircle, Brain, Database, BarChart3 } from "lucide-react";
+import { CheckCircle, Brain, Database, BarChart3, Info } from "lucide-react";
 import { getMetricInterpretation } from "@/utils/fairnessInterpretation";
 
 export const InfoRow = ({ label, value }: { label: string; value?: any }) => (
@@ -37,7 +37,12 @@ export const MetricRow = ({ name, value, baselineValue }: any) => {
       className="border rounded-lg p-3 bg-gray-50"
       title={interpretation.tooltip}
     >
-      <div className="text-xs text-gray-500">{name}</div>
+      <div className="flex items-center gap-1 text-xs text-gray-500">
+        {name}
+        {interpretation.tooltip && interpretation.improvementLabel && (
+          <Info className="w-3 h-3 text-gray-400" />
+        )}
+      </div>
 
       <div className="flex items-center justify-between mt-1">
         <span className="font-semibold text-gray-800">
