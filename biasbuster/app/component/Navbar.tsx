@@ -5,7 +5,17 @@ import { logout, logoutAll, getMe } from "@/lib/auth";
 import { AUTH_CHANGED_EVENT } from "@/lib/auth-events";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Brain, Menu, ChevronRight, ChevronDown, Mail, ShieldCheck, ShieldAlert, LogOut, Monitor } from "lucide-react";
+import {
+  Brain,
+  Menu,
+  ChevronRight,
+  ChevronDown,
+  Mail,
+  ShieldCheck,
+  ShieldAlert,
+  LogOut,
+  Monitor,
+} from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 type User = {
@@ -63,7 +73,7 @@ export function Navbar() {
   };
 
   const navItems = [
-    { label: "Docs", href: "#docs" },
+    { label: "Docs", href: "/docs" },
     { label: "Blog", href: "#blog" },
     { label: "Tutorials", href: "#tutorials" },
     { label: "Workspace", href: "/dashboard" },
@@ -131,7 +141,11 @@ export function Navbar() {
         <div className="md:hidden">
           <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" data-testid="button-menu-toggle">
+              <Button
+                variant="ghost"
+                size="icon"
+                data-testid="button-menu-toggle"
+              >
                 <Menu className="size-6" />
               </Button>
             </SheetTrigger>
@@ -232,7 +246,9 @@ function initialsOf(name?: string) {
 
 function ProfileMenu({ onLoggedOut }: { onLoggedOut: () => void }) {
   const [open, setOpen] = useState(false);
-  const [actionLoading, setActionLoading] = useState<"logout" | "logout-all" | null>(null);
+  const [actionLoading, setActionLoading] = useState<
+    "logout" | "logout-all" | null
+  >(null);
   const ref = useRef<HTMLDivElement>(null);
   const user = useCurrentUser();
 
@@ -292,7 +308,9 @@ function ProfileMenu({ onLoggedOut }: { onLoggedOut: () => void }) {
             {initialsOf(user?.full_name)}
           </div>
         )}
-        <ChevronDown className={`size-3.5 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
+        <ChevronDown
+          className={`size-3.5 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`}
+        />
       </button>
 
       {open && (
@@ -352,7 +370,9 @@ function ProfileMenu({ onLoggedOut }: { onLoggedOut: () => void }) {
               className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-semibold text-red-600 hover:bg-red-50 disabled:opacity-60 transition"
             >
               <Monitor className="size-3.5" />
-              {actionLoading === "logout-all" ? "Logging out…" : "Log out of all devices"}
+              {actionLoading === "logout-all"
+                ? "Logging out…"
+                : "Log out of all devices"}
             </button>
           </div>
         </div>
@@ -386,8 +406,12 @@ function MobileProfileBlock({
           </div>
         )}
         <div className="min-w-0">
-          <p className="truncate font-serif text-sm text-foreground">{user?.full_name ?? "…"}</p>
-          <p className="truncate text-xs text-muted-foreground">{user?.email ?? ""}</p>
+          <p className="truncate font-serif text-sm text-foreground">
+            {user?.full_name ?? "…"}
+          </p>
+          <p className="truncate text-xs text-muted-foreground">
+            {user?.email ?? ""}
+          </p>
         </div>
       </div>
 
