@@ -64,7 +64,7 @@ export function Navbar() {
 
   const navItems = [
     { label: "Docs", href: "#docs" },
-    { label: "Blog", href: "#blog" },
+    { label: "Blog", href: "/blogs" },
     { label: "Tutorials", href: "#tutorials" },
     { label: "Workspace", href: "/Workspace" },
   ];
