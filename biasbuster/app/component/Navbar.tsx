@@ -74,7 +74,7 @@ export function Navbar() {
 
   const navItems = [
     { label: "Docs", href: "/docs" },
-    { label: "Blog", href: "#blog" },
+    { label: "Blogs", href: "/blogs" },
     { label: "Tutorials", href: "#tutorials" },
     { label: "Workspace", href: "/dashboard" },
   ];
