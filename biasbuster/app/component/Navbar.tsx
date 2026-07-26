@@ -75,7 +75,7 @@ export function Navbar() {
   const navItems = [
     { label: "Docs", href: "/docs" },
     { label: "Blogs", href: "/blogs" },
-    { label: "Tutorials", href: "#tutorials" },
+    { label: "Tutorials", href: "/#tutorials" },
     { label: "Workspace", href: "/dashboard" },
   ];
 
@@ -100,6 +100,16 @@ export function Navbar() {
                 href={item.href}
                 className="px-4 py-1.5 text-[11px] font-jetbrains  text-muted-foreground hover:text-foreground hover:bg-white/60 rounded-sm transition-all uppercase tracking-wide"
                 data-testid={`link-nav-${item.label.toLowerCase()}`}
+                onClick={(e) => {
+                  if (item.href.startsWith("/#") && pathname === "/") {
+                    e.preventDefault();
+                    const id = item.href.replace("/#", "");
+                    const element = document.getElementById(id);
+                    if (element) {
+                      element.scrollIntoView({ behavior: "smooth" });
+                    }
+                  }
+                }}
               >
                 {item.label}
               </Link>
@@ -156,7 +166,17 @@ export function Navbar() {
                     key={item.label}
                     href={item.href}
                     className="text-lg font-bold text-foreground hover:text-primary transition-colors"
-                    onClick={() => setIsMenuOpen(false)}
+                    onClick={(e) => {
+                      setIsMenuOpen(false);
+                      if (item.href.startsWith("/#") && pathname === "/") {
+                        e.preventDefault();
+                        const id = item.href.replace("/#", "");
+                        const element = document.getElementById(id);
+                        if (element) {
+                          element.scrollIntoView({ behavior: "smooth" });
+                        }
+                      }
+                    }}
                   >
                     {item.label}
                   </Link>
