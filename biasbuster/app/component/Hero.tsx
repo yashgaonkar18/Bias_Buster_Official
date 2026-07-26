@@ -112,8 +112,9 @@ export function Hero() {
         </div>
 
         <div
+          id="tutorials"
           className="w-full h-[70vh] max-w-5xl mx-auto p-3 
-    rounded-2xl shadow-[0_0_30px_rgba(255,255,255,0.08)] border-2  overflow-hidden group relative"
+    rounded-2xl shadow-[0_0_30px_rgba(255,255,255,0.08)] border-2  overflow-hidden group relative scroll-mt-32"
         >
           <div className="w-full h-full rounded-xl overflow-hidden relative">
             <div className="absolute inset-0 z-10 pointer-events-none bg-black/5 group-hover:bg-black/20 transition-colors duration-500" />
