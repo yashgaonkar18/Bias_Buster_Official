@@ -10,7 +10,6 @@ export const GroupImpactTable = ({ selectionRate, tpr }: any) => (
         <th className="px-3 py-2 text-left">Group</th>
         <th className="px-3 py-2 text-center">Selection Rate</th>
         <th className="px-3 py-2 text-center">TPR</th>
-        <th className="px-3 py-2 text-center">Impact</th>
       </tr>
     </thead>
     <tbody>
@@ -30,7 +29,6 @@ export const GroupImpactTable = ({ selectionRate, tpr }: any) => (
             <td className="px-3 py-2 text-center">
               {tpr?.[group]?.toFixed(3) ?? "—"}
             </td>
-            <td className="px-3 py-2 text-center font-semibold">{impact}</td>
           </tr>
         );
       })}

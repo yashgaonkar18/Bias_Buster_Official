@@ -105,7 +105,6 @@ export const GroupImpactTable = ({ selectionRate, tpr }: any) => {
             <th className="px-3 py-2 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Group</th>
             <th className="px-3 py-2 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Selection Rate</th>
             <th className="px-3 py-2 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">TPR</th>
-            <th className="px-3 py-2 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Impact</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-200">
@@ -124,13 +123,6 @@ export const GroupImpactTable = ({ selectionRate, tpr }: any) => {
                 <td className="px-3 py-2 text-center text-gray-600">{typeof sr === 'number' ? sr.toFixed(3) : sr}</td>
                 <td className="px-3 py-2 text-center text-gray-600">
                   {typeof tpr?.[group] === 'number' ? tpr[group].toFixed(3) : "—"}
-                </td>
-                <td className="px-3 py-2 text-center">
-                   <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                     impact === 'Fair' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                   }`}>
-                     {impact}
-                   </span>
                 </td>
               </tr>
             );
