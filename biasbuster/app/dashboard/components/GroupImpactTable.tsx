@@ -21,10 +21,6 @@ export default function GroupImpactTable({
           <th className="px-3 py-2 text-center">
             TPR
           </th>
-
-          <th className="px-3 py-2 text-center">
-            Impact
-          </th>
         </tr>
       </thead>
 
@@ -59,10 +55,6 @@ export default function GroupImpactTable({
 
               <td className="px-3 py-2 text-center">
                 {tpr?.[group]?.toFixed(3) ?? "-"}
-              </td>
-
-              <td className="px-3 py-2 text-center font-semibold">
-                {impact}
               </td>
             </tr>
           );
